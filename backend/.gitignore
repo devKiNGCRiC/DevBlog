@@ -1,0 +1,55 @@
+# ============================================================
+# backend/.gitignore — Backend-specific Git ignore rules
+#
+# These rules apply only to the backend/ directory.
+# The root .gitignore also applies here, so this file only
+# lists anything extra that is specific to the Node.js backend.
+# ============================================================
+
+
+# ============================================================
+# ENVIRONMENT VARIABLES
+# Contains real MONGO_URI, JWT_SECRET, Cloudinary keys, etc.
+# NEVER commit — use .env.example as the template instead.
+# ============================================================
+.env
+.env.*
+!.env.example
+
+
+# ============================================================
+# DEPENDENCIES
+# ============================================================
+node_modules/
+
+
+# ============================================================
+# LOGS
+# ============================================================
+logs/
+*.log
+npm-debug.log*
+
+
+# ============================================================
+# UPLOADED FILES
+# In development, if any files are saved to disk, keep them local.
+# Production uploads go to Cloudinary.
+# ============================================================
+uploads/
+
+
+# ============================================================
+# CACHE & TEMP
+# ============================================================
+.cache/
+tmp/
+temp/
+
+
+# ============================================================
+# TEST COVERAGE
+# ============================================================
+coverage/
+.nyc_output/
+

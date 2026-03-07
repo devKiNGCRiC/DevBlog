@@ -1,0 +1,156 @@
+/* ============================================================
+   src/components/Footer.css — Global Footer Styles
+   
+   Footer uses its own dark surface (--footer-bg) so it is
+   visually distinct from the page content in every theme.
+   ============================================================ */
+
+/* ---- Base footer ---- */
+.footer {
+    margin-top: auto;
+    background: var(--footer-bg);
+    border-top: 1px solid var(--footer-border);
+    padding: 3rem 0 1.75rem;
+}
+
+/* ---- Top grid ---- */
+.footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 2.5rem;
+    margin-bottom: 2.5rem;
+}
+
+/* ---- Brand section ---- */
+.footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.footer-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    margin-bottom: 0.875rem;
+}
+
+.footer-logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent-gradient);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.footer-logo-text {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+}
+
+.footer-tagline {
+    color: var(--footer-text);
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    max-width: 380px;
+}
+
+/* ---- Link columns ---- */
+.footer-col-heading {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--footer-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 1rem;
+}
+
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.footer-links a {
+    color: var(--footer-text);
+    text-decoration: none;
+    font-size: 0.9375rem;
+    transition: color 0.2s ease;
+    display: inline-block;
+}
+
+.footer-links a:hover {
+    color: #ffffff;
+}
+
+/* ---- Bottom bar ---- */
+.footer-bottom {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--footer-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.footer-bottom-text {
+    color: var(--footer-text);
+    font-size: 0.875rem;
+}
+
+.footer-bottom-badge {
+    font-size: 0.8125rem;
+    color: var(--footer-text);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.footer-bottom-badge span {
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 768px) {
+    .footer-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+
+    .footer-brand {
+        grid-column: 1 / -1;
+    }
+
+    .footer-tagline { max-width: 100%; }
+
+    .footer-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .footer { padding: 2.5rem 0 1.5rem; }
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 1.75rem;
+    }
+    .footer-brand { grid-column: unset; }
+}
