@@ -4,8 +4,11 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
+import useAuthStore from "../store/authStore";
 
 const AboutPage = () => {
+    const { user } = useAuthStore();
+
     return (
         <div className="page-wrapper container" style={{ padding: "4rem 1rem", maxWidth: "800px"  }}>
             <div className="card" style={{ padding: "3rem", animation: "fadeIn 0.5s ease" ,  marginTop: "4rem"}}>
@@ -38,10 +41,27 @@ const AboutPage = () => {
                     </ul>
 
                     <div style={{ marginTop: "3rem", textAlign: "center" }}>
-                        <p style={{ marginBottom: "1.5rem", fontWeight: 600 }}>Ready to share your knowledge with the world?</p>
-                        <Link to="/register" className="btn btn-primary btn-lg">
-                            Join the Community Today 🚀
-                        </Link>
+                        {user ? (
+                            // User is already logged in — invite them to write instead
+                            <>
+                                <p style={{ marginBottom: "1.5rem", fontWeight: 600 }}>
+                                    Welcome back, {user.name}! Ready to share something new?
+                                </p>
+                                <Link to="/write" className="btn btn-primary btn-lg">
+                                    Write a Post ✍️
+                                </Link>
+                            </>
+                        ) : (
+                            // Guest — invite them to register
+                            <>
+                                <p style={{ marginBottom: "1.5rem", fontWeight: 600 }}>
+                                    Ready to share your knowledge with the world?
+                                </p>
+                                <Link to="/register" className="btn btn-primary btn-lg">
+                                    Join the Community Today 🚀
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
