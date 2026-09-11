@@ -173,8 +173,10 @@ postSchema.pre("save", async function () {
 
     // Auto-generate excerpt from content if not provided
     if (this.isModified("content") && !this.excerpt) {
-        const plainText = this.content.replace(/<[^>]*>/g, ""); // Remove HTML tags
-        this.excerpt = plainText.substring(0, 250) + "..."; // First 250 characters
+        const plainText = this.content.replace(/<[^>]*>/g, "").trim(); // Remove HTML tags
+        // Only append "..." if the text was actually truncated
+        this.excerpt =
+            plainText.length > 250 ? plainText.substring(0, 250) + "..." : plainText;
     }
 
     // Set publishedAt date when post is first published

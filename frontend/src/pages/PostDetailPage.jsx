@@ -14,7 +14,7 @@ import CommentSection from "../components/CommentSection";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ConfirmModal from "../components/ConfirmModal";
 import useAuthStore from "../store/authStore";
-import { formatDate, timeAgo, getInitials } from "../utils/helpers";
+import { formatDate, getInitials } from "../utils/helpers";
 import toast from "react-hot-toast";
 
 const PostDetailPage = () => {

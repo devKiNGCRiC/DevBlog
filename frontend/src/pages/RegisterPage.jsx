@@ -59,7 +59,7 @@ const RegisterPage = () => {
 
         try {
             // Don't send confirmPassword to the API
-            const { confirmPassword, ...dataToSend } = formData;
+            const { confirmPassword: _confirmPassword, ...dataToSend } = formData;
             await register(dataToSend);
             toast.success("Account created! Welcome to DevBlog! 🚀");
             navigate("/"); // Redirect to home after registration
@@ -148,7 +148,7 @@ const RegisterPage = () => {
                                 <input
                                     id="password" type={showPassword ? "text" : "password"}
                                     name="password" value={formData.password} onChange={handleChange}
-                                    className="form-input" placeholder="At least 6 characters"
+                                    className="form-input" placeholder="At least 8 characters"
                                 />
                                 <button
                                     type="button" onClick={() => setShowPassword(!showPassword)}

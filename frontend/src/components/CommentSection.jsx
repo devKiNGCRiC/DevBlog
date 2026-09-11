@@ -225,6 +225,9 @@ const CommentSection = ({ postId }) => {
     const { user } = useAuthStore();
     const isLoggedIn = !!user;
     const [comments, setComments] = useState([]);
+    // Total comment count from the server (includes nested replies) —
+    // comments.length alone would only count top-level comments.
+    const [totalComments, setTotalComments] = useState(0);
     const [loading, setLoading] = useState(true);
     const [newComment, setNewComment] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -238,6 +241,7 @@ const CommentSection = ({ postId }) => {
         try {
             const data = await getComments(postId);
             setComments(data.comments);
+            setTotalComments(data.totalComments ?? data.comments.length);
         } catch {
             toast.error("Failed to load comments");
         } finally {
@@ -255,6 +259,7 @@ const CommentSection = ({ postId }) => {
             const data = await addComment(postId, newComment);
             // Add new comment to the top of the list
             setComments((prev) => [{ ...data.comment, replies: [] }, ...prev]);
+            setTotalComments((prev) => prev + 1);
             setNewComment("");
             toast.success("Comment posted! 🎉");
         } catch {
@@ -282,10 +287,11 @@ const CommentSection = ({ postId }) => {
                 return comment;
             });
         setComments((prev) => insertReply(prev));
+        setTotalComments((prev) => prev + 1);
     };
 
-    // Handle comment deletion
-    const handleDelete = async (commentId, isReply = false) => {
+    // Handle comment deletion (searches both top-level comments and their replies)
+    const handleDelete = async (commentId) => {
         if (!window.confirm("Delete this comment?")) return;
         try {
             await deleteComment(commentId);
@@ -322,7 +328,7 @@ const CommentSection = ({ postId }) => {
                     color: "var(--text-primary)",
                 }}
             >
-                💬 Comments ({comments.length})
+                💬 Comments ({totalComments})
             </h3>
 
             {/* New Comment Form — only for logged-in users */}

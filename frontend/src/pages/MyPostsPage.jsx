@@ -5,7 +5,7 @@
 // Allows editing and deleting posts from this dashboard view.
 // ============================================================
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { getMyPosts, deletePost } from "../api/posts";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -21,19 +21,30 @@ const MyPostsPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [pagination, setPagination] = useState({});
     const [deleteTarget, setDeleteTarget] = useState(null); // { id, title }
+    // Tracks when a page reset is caused by the filter changing, so the
+    // currentPage effect doesn't also fire a duplicate fetch for the old page.
+    const isFilterChangingRef = useRef(false);
 
     useEffect(() => {
+        isFilterChangingRef.current = true;
         setCurrentPage(1);
+        fetchMyPosts(1);
     }, [filter]);
 
     useEffect(() => {
-        fetchMyPosts();
-    }, [filter, currentPage]);
+        if (isFilterChangingRef.current) {
+            // This currentPage change was triggered by a filter change;
+            // the filter effect already fetched page 1 — skip this run.
+            isFilterChangingRef.current = false;
+            return;
+        }
+        fetchMyPosts(currentPage);
+    }, [currentPage]);
 
-    const fetchMyPosts = async () => {
+    const fetchMyPosts = async (page = currentPage) => {
         setLoading(true);
         try {
-            const params = { page: currentPage, limit: 10 };
+            const params = { page, limit: 10 };
             if (filter === "published") params.published = "true";
             if (filter === "draft") params.published = "false";
             const data = await getMyPosts(params);
