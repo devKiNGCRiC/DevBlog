@@ -39,6 +39,7 @@ const AboutPage = lazy(() => import("./pages/AboutPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
+const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 
@@ -158,6 +159,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <EditProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <AdminDashboardPage />
               </ProtectedRoute>
             }
           />

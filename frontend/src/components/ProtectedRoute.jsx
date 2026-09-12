@@ -13,8 +13,9 @@ import { Navigate, useLocation } from "react-router-dom"; // Navigate = redirect
 import useAuthStore from "../store/authStore";
 
 // "children" = whatever content is nested inside this component
-const ProtectedRoute = ({ children }) => {
-    const { token } = useAuthStore(); // Check if user has a token
+// "adminOnly" = also require the logged-in user to have role: "admin"
+const ProtectedRoute = ({ children, adminOnly = false }) => {
+    const { token, user } = useAuthStore(); // Check if user has a token
     const isLoggedIn = !!token;
     const location = useLocation(); // Current URL — passed to login so user returns here after login
 
@@ -25,7 +26,12 @@ const ProtectedRoute = ({ children }) => {
         return <Navigate to="/login" state={{ from: location.pathname }} replace />;
     }
 
-    // Logged in → show the actual page
+    if (adminOnly && user?.role !== "admin") {
+        // Logged in but not an admin — send them home instead of revealing the page exists
+        return <Navigate to="/" replace />;
+    }
+
+    // Logged in (and admin, if required) → show the actual page
     return children;
 };
 

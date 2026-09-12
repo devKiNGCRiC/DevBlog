@@ -28,6 +28,7 @@ const postRoutes = require("./routes/post.routes");
 const commentRoutes = require("./routes/comment.routes");           // Nested under /api/posts
 const commentStandaloneRoutes = require("./routes/comment-standalone.routes"); // Standalone /api/comments
 const userRoutes = require("./routes/user.routes");
+const adminRoutes = require("./routes/admin.routes"); // Admin-only moderation endpoints
 
 // Import custom error-handling middleware
 const { notFound, errorHandler } = require("./middleware/error.middleware");
@@ -145,6 +146,7 @@ app.use("/api/posts", postRoutes); // Blog posts (CRUD, like, bookmark)
 app.use("/api/posts", commentRoutes); // Comments nested under posts (add/get)
 app.use("/api/comments", commentStandaloneRoutes); // Standalone comment ops (delete/like)
 app.use("/api/users", userRoutes); // User profiles and follow
+app.use("/api/admin", adminRoutes); // Admin-only moderation dashboard endpoints
 
 // ============================================================
 // ERROR HANDLING MIDDLEWARE

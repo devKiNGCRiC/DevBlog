@@ -150,6 +150,9 @@ const Navbar = () => {
                                             <Link to="/my-posts" className="dropdown-link" role="menuitem">📝 My Posts</Link>
                                             <Link to="/bookmarks" className="dropdown-link" role="menuitem">🔖 Bookmarks</Link>
                                             <Link to="/settings" className="dropdown-link" role="menuitem">⚙️ Settings</Link>
+                                            {user?.role === "admin" && (
+                                                <Link to="/admin" className="dropdown-link" role="menuitem">🛡️ Admin Dashboard</Link>
+                                            )}
                                             <hr className="dropdown-divider" />
                                             <button className="dropdown-item danger" onClick={handleLogout} role="menuitem">
                                                 🚪 Logout
@@ -267,6 +270,9 @@ const Navbar = () => {
                             <Link to="/my-posts" className="mobile-nav-link">📝 My Posts</Link>
                             <Link to="/bookmarks" className="mobile-nav-link">🔖 Bookmarks</Link>
                             <Link to="/settings" className="mobile-nav-link">⚙️ Settings</Link>
+                            {user?.role === "admin" && (
+                                <Link to="/admin" className="mobile-nav-link">🛡️ Admin Dashboard</Link>
+                            )}
                         </>
                     )}
                     <Link to="/about" className="mobile-nav-link">ℹ️ About</Link>
