@@ -28,6 +28,8 @@ import useAuthStore from "./store/authStore";
 const HomePage = lazy(() => import("./pages/HomePage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
@@ -98,6 +100,8 @@ function AppContent() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/post/:slug" element={<PostDetailPage />} />
           <Route path="/profile/:username" element={<ProfilePage />} />
 

@@ -375,5 +375,122 @@ const resendVerification = async (req, res) => {
     });
 };
 
+// ============================================================
+// @desc    Request a password reset link (for users who forgot their password)
+// @route   POST /api/auth/forgot-password
+// @access  Public
+// ============================================================
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, message: "Please provide your email address" });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Always return the same success message whether or not the account exists —
+    // this prevents attackers from using this endpoint to check which emails are registered.
+    const genericMessage = "If an account with that email exists, a password reset link has been sent.";
+
+    if (!user) {
+        return res.status(200).json({ success: true, message: genericMessage });
+    }
+
+    // Generate a secure random reset token (hex string), same approach as email verification
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+
+    try {
+        await sendEmail({
+            to: user.email,
+            subject: "Reset your DevBlog password",
+            html: `
+                <h2>Password Reset Request</h2>
+                <p>Hi ${user.name}, we received a request to reset your DevBlog password.</p>
+                <p>Click the link below to choose a new password:</p>
+                <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#6366f1;color:white;text-decoration:none;border-radius:6px;">
+                    Reset Password
+                </a>
+                <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+            `,
+        });
+    } catch (err) {
+        // Don't leak email-sending failures to the client — just log them.
+        // Clear the token so a broken email service doesn't leave a dangling reset link.
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpiry = undefined;
+        await user.save();
+        console.error("Failed to send password reset email:", err.message);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to send reset email. Please try again later.",
+        });
+    }
+
+    res.status(200).json({ success: true, message: genericMessage });
+};
+
+// ============================================================
+// @desc    Reset password using the token from the reset email
+// @route   POST /api/auth/reset-password
+// @access  Public
+// ============================================================
+const resetPassword = async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({
+            success: false,
+            message: "Reset token and new password are required",
+        });
+    }
+
+    if (newPassword.length < 8) {
+        return res.status(400).json({
+            success: false,
+            message: "New password must be at least 8 characters",
+        });
+    }
+
+    // Find user with this token that hasn't expired yet
+    const user = await User.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpiry: { $gt: new Date() },
+    }).select("+resetPasswordToken +resetPasswordExpiry +password");
+
+    if (!user) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid or expired reset link. Please request a new one.",
+        });
+    }
+
+    // Set new password (hashed automatically by the pre-save hook) and clear the token
+    user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiry = undefined;
+    await user.save();
+
+    res.status(200).json({
+        success: true,
+        message: "Password reset successfully! You can now log in with your new password.",
+    });
+};
+
 // Export all controller functions so routes can use them
-module.exports = { register, login, getMe, updateProfile, changePassword, verifyEmail, resendVerification };
+module.exports = {
+    register,
+    login,
+    getMe,
+    updateProfile,
+    changePassword,
+    verifyEmail,
+    resendVerification,
+    forgotPassword,
+    resetPassword,
+};

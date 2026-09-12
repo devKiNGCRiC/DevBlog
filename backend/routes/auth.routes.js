@@ -19,6 +19,8 @@ const {
     changePassword,
     verifyEmail,
     resendVerification,
+    forgotPassword,
+    resetPassword,
 } = require("../controllers/auth.controller");
 
 // Import middlewares
@@ -29,6 +31,8 @@ const upload = require("../middleware/upload.middleware"); // File upload handle
 router.post("/register", register); // POST /api/auth/register
 router.post("/login", login); // POST /api/auth/login
 router.get("/verify-email", verifyEmail); // GET /api/auth/verify-email?token=...
+router.post("/forgot-password", forgotPassword); // POST /api/auth/forgot-password
+router.post("/reset-password", resetPassword); // POST /api/auth/reset-password
 
 // Private routes (must be logged in)
 // "protect" middleware runs first, then the controller function

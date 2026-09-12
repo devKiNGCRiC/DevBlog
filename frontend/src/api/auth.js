@@ -41,3 +41,15 @@ export const changePassword = async (data) => {
     const response = await api.put("/auth/change-password", data);
     return response.data;
 };
+
+// Request a password reset email (for users who forgot their password)
+export const forgotPassword = async (email) => {
+    const response = await api.post("/auth/forgot-password", { email });
+    return response.data;
+};
+
+// Reset password using the token from the reset email
+export const resetPassword = async (token, newPassword) => {
+    const response = await api.post("/auth/reset-password", { token, newPassword });
+    return response.data;
+};

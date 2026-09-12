@@ -120,6 +120,19 @@ const userSchema = new mongoose.Schema(
             type: Date,
             select: false, // Never expose this in API responses
         },
+
+        // --- Password Reset ---
+        // A random token sent to the user's email to let them set a new
+        // password when they've forgotten it (they're not logged in, so
+        // "change password" — which requires the current password — won't work).
+        resetPasswordToken: {
+            type: String,
+            select: false, // Never expose this in API responses
+        },
+        resetPasswordExpiry: {
+            type: Date,
+            select: false, // Never expose this in API responses
+        },
     },
     {
         // "timestamps: true" automatically adds:
