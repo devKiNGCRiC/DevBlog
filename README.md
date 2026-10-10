@@ -95,7 +95,8 @@ DevBlog/
 ├── package.json              # Root: runs both servers with "concurrently"
 │
 ├── backend/                  # Node.js / Express REST API
-│   ├── server.js             # Entry point — Express setup, middleware, route mounting
+│   ├── server.js             # Entry point — loads .env, connects to MongoDB, starts listening
+│   ├── app.js                # Express app — middleware and route mounting (imported by tests)
 │   ├── .env.example          # Template for environment variables (commit this, NOT .env)
 │   │
 │   ├── config/
@@ -125,9 +126,14 @@ DevBlog/
 │   │   ├── error.middleware.js   # Global error handler + 404 not-found handler
 │   │   └── upload.middleware.js  # Multer config — memory storage, file type/size limits
 │   │
-│   └── utils/
-│       ├── generateToken.js  # Signs a JWT with the user ID and expiry
-│       └── sendEmail.js      # Nodemailer helper for verification/reset emails
+│   ├── utils/
+│   │   ├── generateToken.js  # Signs a JWT with the user ID and expiry
+│   │   └── sendEmail.js      # Nodemailer helper for verification/reset emails
+│   │
+│   └── tests/                # Jest + Supertest API tests against an in-memory MongoDB
+│       ├── auth.test.js      # Register, login, password reset, JWT guard, injection attempts
+│       ├── posts.test.js     # Ownership checks, drafts, sanitising, likes, comments
+│       └── admin.test.js     # Admin-only access, role changes, user deletion cleanup
 │
 └── frontend/                 # React / Vite SPA
     ├── index.html            # Vite's HTML entry point
@@ -252,6 +258,15 @@ npm run dev
 | `npm run build` | Builds the frontend for production |
 | `npm start` | Starts the backend in production mode |
 | `npm run install:all` | Installs dependencies in all three package.json files |
+
+### Running the tests
+
+```bash
+cd backend
+npm test
+```
+
+The backend tests run against a throwaway in-memory MongoDB (`mongodb-memory-server`), so no `.env`, Atlas cluster, Cloudinary account or email account is needed. Emails are mocked. The first run downloads a MongoDB binary (~100 MB) and is slower; later runs take about 15 seconds.
 
 ---
 
@@ -382,6 +397,7 @@ The following security practices are applied throughout the project:
 | Rate Limiting | Brute-force protection | `express-rate-limit` — 10 auth attempts / 15 min, 100 API requests / 15 min |
 | Passwords | One-way hashing | `bcryptjs` with salt rounds via a Mongoose pre-save hook |
 | Authentication | Stateless JWT sessions | Tokens are signed with `JWT_SECRET`, verified in `auth.middleware.js` on every protected route |
+| Auth Inputs | NoSQL injection prevention | Auth handlers reject any field that isn't a plain string, so a body like `{"token": {"$ne": ""}}` can't become a MongoDB operator (covered by tests) |
 | Post Content | Server-side XSS prevention | `sanitize-html` strips disallowed tags from Quill HTML before it is saved to MongoDB |
 | Post Content | Client-side XSS prevention | `DOMPurify` sanitises post HTML again before rendering it in the browser |
 | File Uploads | Type and size limits | Multer only accepts `image/jpeg`, `image/png`, and `image/webp`, max 5 MB per upload |

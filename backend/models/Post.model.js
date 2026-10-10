@@ -193,7 +193,6 @@ postSchema.pre("save", async function () {
 // With it, it directly jumps to the right post. Much faster!
 // ============================================================
 postSchema.index({ title: "text", content: "text", excerpt: "text" }); // Full-text search
-postSchema.index({ slug: 1 }); // Unique slug lookups
 postSchema.index({ author: 1 }); // Fast lookups by author
 postSchema.index({ categories: 1 }); // Fast lookups by category
 postSchema.index({ tags: 1 }); // Fast lookups by tag
