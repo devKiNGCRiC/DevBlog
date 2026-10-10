@@ -18,6 +18,13 @@ const generateToken = require("../utils/generateToken"); // JWT token generator
 const { cloudinary } = require("../config/cloudinary"); // For deleting old images
 const sendEmail = require("../utils/sendEmail"); // Email sending utility
 
+// Returns true only if every value is a non-empty string.
+// SECURITY: req.body is parsed JSON, so a field can arrive as an object like
+// { "$ne": "" }. Passed into a Mongo query, that becomes an operator and matches
+// ANY document (NoSQL injection). Rejecting non-strings closes that hole.
+const areNonEmptyStrings = (...values) =>
+    values.every((value) => typeof value === "string" && value.length > 0);
+
 // ============================================================
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -28,7 +35,7 @@ const register = async (req, res) => {
     const { name, username, email, password } = req.body;
 
     // Check if all required fields are provided
-    if (!name || !username || !email || !password) {
+    if (!areNonEmptyStrings(name, username, email, password)) {
         return res.status(400).json({
             success: false,
             message: "Please provide all required fields",
@@ -116,7 +123,7 @@ const login = async (req, res) => {
     const { email, password } = req.body;
 
     // Validate input
-    if (!email || !password) {
+    if (!areNonEmptyStrings(email, password)) {
         return res.status(400).json({
             success: false,
             message: "Please provide email and password",
@@ -263,7 +270,7 @@ const updateProfile = async (req, res) => {
 const changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
+    if (!areNonEmptyStrings(currentPassword, newPassword)) {
         return res.status(400).json({
             success: false,
             message: "Please provide current and new passwords",
@@ -308,7 +315,7 @@ const changePassword = async (req, res) => {
 const verifyEmail = async (req, res) => {
     const { token } = req.query;
 
-    if (!token) {
+    if (!areNonEmptyStrings(token)) {
         return res.status(400).json({ success: false, message: "Verification token is required" });
     }
 
@@ -383,7 +390,7 @@ const resendVerification = async (req, res) => {
 const forgotPassword = async (req, res) => {
     const { email } = req.body;
 
-    if (!email) {
+    if (!areNonEmptyStrings(email)) {
         return res.status(400).json({ success: false, message: "Please provide your email address" });
     }
 
@@ -443,7 +450,7 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
 
-    if (!token || !newPassword) {
+    if (!areNonEmptyStrings(token, newPassword)) {
         return res.status(400).json({
             success: false,
             message: "Reset token and new password are required",
