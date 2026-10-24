@@ -14,6 +14,7 @@ import CommentSection from "../components/CommentSection";
 import PostCard from "../components/PostCard";
 import ReadingProgress from "../components/ReadingProgress";
 import TableOfContents from "../components/TableOfContents";
+import ShareButtons from "../components/ShareButtons";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ConfirmModal from "../components/ConfirmModal";
 import useAuthStore from "../store/authStore";
@@ -134,13 +135,28 @@ const PostDetailPage = () => {
     // Use String() to normalise ObjectId vs plain string comparison
     const isAuthor = String(user?._id) === String(post.author?._id);
 
+    // Canonical link to this post — used for sharing and Open Graph tags
+    const postUrl = `${window.location.origin}/post/${post.slug}`;
+
     return (
         <div className="page-wrapper">
             <Helmet>
                 <title>{post.title} | DevBlog</title>
                 {post.excerpt && <meta name="description" content={post.excerpt} />}
+                <link rel="canonical" href={postUrl} />
+                {/* Open Graph (Facebook, LinkedIn, Slack...) and Twitter card previews */}
+                <meta property="og:type" content="article" />
+                <meta property="og:site_name" content="DevBlog" />
                 <meta property="og:title" content={post.title} />
+                <meta property="og:url" content={postUrl} />
+                {post.excerpt && <meta property="og:description" content={post.excerpt} />}
                 {post.coverImage && <meta property="og:image" content={post.coverImage} />}
+                {post.publishedAt && <meta property="article:published_time" content={post.publishedAt} />}
+                {post.author?.name && <meta property="article:author" content={post.author.name} />}
+                <meta name="twitter:card" content={post.coverImage ? "summary_large_image" : "summary"} />
+                <meta name="twitter:title" content={post.title} />
+                {post.excerpt && <meta name="twitter:description" content={post.excerpt} />}
+                {post.coverImage && <meta name="twitter:image" content={post.coverImage} />}
             </Helmet>
             <ReadingProgress targetRef={articleRef} />
             <div className="container" style={{ paddingTop: "2rem", maxWidth: 780 }}>
@@ -314,6 +330,11 @@ const PostDetailPage = () => {
                     style={{ margin: "0 auto" }}
                     dangerouslySetInnerHTML={{ __html: contentHtml }}
                 />
+
+                {/* ---- SHARE ---- */}
+                <div style={{ marginTop: "2.5rem" }}>
+                    <ShareButtons title={post.title} url={postUrl} />
+                </div>
 
                 {/* ---- RELATED POSTS ---- */}
                 {relatedPosts.length > 0 && (
