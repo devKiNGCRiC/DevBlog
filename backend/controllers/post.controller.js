@@ -138,7 +138,16 @@ const getAllPosts = async (req, res) => {
         tag, // Filter by tag
         author, // Filter by author username
         sortBy = "latest", // How to sort: 'latest', 'popular', 'oldest'
+        feed, // "following" = only posts from authors the logged-in user follows
     } = req.query;
+
+    // The "Following" feed only makes sense for a logged-in user
+    if (feed === "following" && !req.user) {
+        return res.status(401).json({
+            success: false,
+            message: "Log in to see posts from people you follow",
+        });
+    }
 
     // Build the "filter" object — like a WHERE clause in SQL
     const filter = {
@@ -167,6 +176,11 @@ const getAllPosts = async (req, res) => {
         if (authorUser) {
             filter.author = authorUser._id;
         }
+    }
+
+    // Following feed: restrict to authors the current user follows
+    if (feed === "following") {
+        filter.author = { $in: req.user.following };
     }
 
     // Sort options

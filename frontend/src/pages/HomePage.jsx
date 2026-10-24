@@ -10,6 +10,7 @@ import PostCard from "../components/PostCard";
 import PostCardSkeleton from "../components/PostCardSkeleton";
 import Pagination from "../components/Pagination";
 import toast from "react-hot-toast";
+import useAuthStore from "../store/authStore";
 
 // Default categories always shown — merged with any from the API
 const DEFAULT_CATEGORIES = [
@@ -19,11 +20,14 @@ const DEFAULT_CATEGORIES = [
 
 const HomePage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const { user } = useAuthStore();
 
     const currentCategory = searchParams.get("category") || "All";
     const currentSearch   = searchParams.get("q") || "";
     const currentSort     = searchParams.get("sort") || "latest";
     const currentPage     = parseInt(searchParams.get("page") || "1");
+    // "following" feed is only available to logged-in users
+    const currentFeed     = user && searchParams.get("feed") === "following" ? "following" : "all";
 
     const [posts, setPosts]           = useState([]);
     const [pagination, setPagination] = useState({});
@@ -65,6 +69,7 @@ const HomePage = () => {
             const params = { page: currentPage, limit: 9, sortBy: currentSort };
             if (currentSearch) params.search = currentSearch;
             if (currentCategory !== "All") params.category = currentCategory.toLowerCase();
+            if (currentFeed === "following") params.feed = "following";
             const data = await getAllPosts(params);
             setPosts(data.posts);
             setPagination(data.pagination);
@@ -73,7 +78,7 @@ const HomePage = () => {
         } finally {
             setLoading(false);
         }
-    }, [currentPage, currentSort, currentSearch, currentCategory]);
+    }, [currentPage, currentSort, currentSearch, currentCategory, currentFeed]);
 
     useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
@@ -133,6 +138,26 @@ const HomePage = () => {
                     </form>
                 </section>
 
+                {/* ---- FEED TABS (logged-in users only) ---- */}
+                {user && (
+                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }} role="tablist" aria-label="Choose feed">
+                        {[
+                            { id: "all", label: "🌍 For you" },
+                            { id: "following", label: "👥 Following" },
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                role="tab"
+                                aria-selected={currentFeed === tab.id}
+                                onClick={() => updateFilter("feed", tab.id === "all" ? "" : tab.id)}
+                                className={`btn btn-sm ${currentFeed === tab.id ? "btn-primary" : "btn-ghost"}`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 {/* ---- FILTER BAR ---- */}
                 <div className="filter-section">
                     <div className="filter-row">
@@ -184,11 +209,15 @@ const HomePage = () => {
                     </div>
                 ) : posts.length === 0 ? (
                     <div className="empty-state">
-                        <span className="empty-state-icon">🔍</span>
+                        <span className="empty-state-icon">{currentFeed === "following" ? "👥" : "🔍"}</span>
                         <h3>No posts found</h3>
-                        <p>Try different keywords or filters</p>
+                        <p>
+                            {currentFeed === "following"
+                                ? "Follow some authors to fill this feed with their posts"
+                                : "Try different keywords or filters"}
+                        </p>
                         <button onClick={clearFilters} className="btn btn-ghost">
-                            Clear filters
+                            {currentFeed === "following" ? "Browse all posts" : "Clear filters"}
                         </button>
                     </div>
                 ) : (

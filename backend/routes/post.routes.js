@@ -19,11 +19,11 @@ const {
     getCategories,
 } = require("../controllers/post.controller");
 
-const { protect } = require("../middleware/auth.middleware");
+const { protect, optionalAuth } = require("../middleware/auth.middleware");
 const upload = require("../middleware/upload.middleware");
 
 // Public routes
-router.get("/", getAllPosts); // GET /api/posts (with ?page, ?search, ?category, ?tag)
+router.get("/", optionalAuth, getAllPosts); // GET /api/posts (with ?page, ?search, ?category, ?tag, ?feed=following)
 router.get("/categories", getCategories); // GET /api/posts/categories — distinct category list
 router.get("/slug/:slug", getPostBySlug); // GET /api/posts/slug/my-first-post
 router.get("/id/:id", protect, getPostById); // GET /api/posts/id/:id (for edit mode — requires auth)

@@ -40,7 +40,7 @@ The goal is to understand how every piece of a modern web application connects â
 |---|---|
 | Auth | Register, login, JWT-based sessions, email verification |
 | Posts | Create / edit / delete posts, rich text (Quill), cover images, draft/publish toggle |
-| Discovery | Full-text search, filter by category or tag, sort by latest / oldest / popular |
+| Discovery | Full-text search, filter by category or tag, sort by latest / oldest / popular, "Following" feed |
 | Engagement | Like posts, bookmark posts, nested comment threads with replies |
 | Profiles | Public profile pages, follower / following system, cover & avatar images |
 | UX | Light / Dark / Sepia themes, PWA (installable app), fully responsive layout |
@@ -351,7 +351,7 @@ All API routes are prefixed with `/api`. Protected routes require the header:
 
 | Method | Route | Access | Description |
 |---|---|---|---|
-| `GET` | `/` | Public | Get all published posts. Supports `?page`, `?limit`, `?search`, `?category`, `?tag`, `?author`, `?sortBy`. |
+| `GET` | `/` | Public | Get all published posts. Supports `?page`, `?limit`, `?search`, `?category`, `?tag`, `?author`, `?sortBy`, `?feed=following` (logged-in only: posts from authors you follow). |
 | `GET` | `/categories` | Public | Get the list of all distinct post categories. |
 | `GET` | `/slug/:slug` | Public | Get a single published post by its URL slug. |
 | `GET` | `/id/:id` | Protected | Get a post by its MongoDB ID (allows draft access by the author). |

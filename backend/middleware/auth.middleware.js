@@ -64,6 +64,23 @@ const protect = async (req, res, next) => {
     }
 };
 
+// "optionalAuth" middleware — for PUBLIC routes that behave differently
+// when someone is logged in (e.g. the "Following" feed).
+// If a valid token is sent, req.user is set. If not, the request
+// simply continues as a guest — it is never rejected.
+const optionalAuth = async (req, res, next) => {
+    const header = req.headers.authorization;
+    if (header && header.startsWith("Bearer")) {
+        try {
+            const decoded = jwt.verify(header.split(" ")[1], process.env.JWT_SECRET);
+            req.user = await User.findById(decoded.id).select("-password");
+        } catch {
+            // Invalid/expired token → treat as a guest
+        }
+    }
+    next();
+};
+
 // "adminOnly" middleware — only allows admin users
 // Use this AFTER "protect" middleware (protect must run first to set req.user)
 const adminOnly = (req, res, next) => {
@@ -78,4 +95,4 @@ const adminOnly = (req, res, next) => {
     }
 };
 
-module.exports = { protect, adminOnly };
+module.exports = { protect, optionalAuth, adminOnly };
