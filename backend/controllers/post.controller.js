@@ -574,6 +574,55 @@ const getCategories = async (req, res) => {
     res.status(200).json({ success: true, categories: sorted });
 };
 
+// ============================================================
+// @desc    Get up to 3 posts related to this one (shared tags/categories)
+// @route   GET /api/posts/:id/related
+// @access  Public
+// ============================================================
+const getRelatedPosts = async (req, res) => {
+    const post = await Post.findOne({ _id: req.params.id, isPublished: true })
+        .select("tags categories");
+    if (!post) {
+        return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    // Score each candidate: a shared tag is a stronger signal than a shared category
+    const related = await Post.aggregate([
+        {
+            $match: {
+                _id: { $ne: post._id },
+                isPublished: true,
+                $or: [{ tags: { $in: post.tags } }, { categories: { $in: post.categories } }],
+            },
+        },
+        {
+            $addFields: {
+                score: {
+                    $add: [
+                        { $multiply: [2, { $size: { $setIntersection: ["$tags", post.tags] } }] },
+                        { $size: { $setIntersection: ["$categories", post.categories] } },
+                    ],
+                },
+            },
+        },
+        { $sort: { score: -1, views: -1 } },
+        { $limit: 3 },
+        {
+            $lookup: {
+                from: "users",
+                localField: "author",
+                foreignField: "_id",
+                as: "authorData",
+                pipeline: [{ $project: { name: 1, username: 1, profilePicture: 1 } }],
+            },
+        },
+        { $addFields: { author: { $arrayElemAt: ["$authorData", 0] } } },
+        { $project: { content: 0, authorData: 0, score: 0 } },
+    ]);
+
+    res.status(200).json({ success: true, posts: related });
+};
+
 // Export all post controller functions
 module.exports = {
     createPost,
@@ -587,4 +636,5 @@ module.exports = {
     bookmarkPost,
     getBookmarkedPosts,
     getCategories,
+    getRelatedPosts,
 };

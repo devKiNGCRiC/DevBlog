@@ -9,8 +9,9 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import DOMPurify from "dompurify"; // Security: sanitizes HTML to prevent XSS attacks
-import { getPostBySlug, likePost, bookmarkPost, deletePost } from "../api/posts";
+import { getPostBySlug, likePost, bookmarkPost, deletePost, getRelatedPosts } from "../api/posts";
 import CommentSection from "../components/CommentSection";
+import PostCard from "../components/PostCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ConfirmModal from "../components/ConfirmModal";
 import useAuthStore from "../store/authStore";
@@ -29,6 +30,7 @@ const PostDetailPage = () => {
     const [bookmarked, setBookmarked] = useState(false); // Has current user bookmarked?
     const [likeCount, setLikeCount] = useState(0);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [relatedPosts, setRelatedPosts] = useState([]);
 
     useEffect(() => {
         fetchPost();
@@ -61,6 +63,12 @@ const PostDetailPage = () => {
                 setBookmarked(data.post.bookmarks?.some((b) => String(b._id) === String(user._id)));
             }
             setLikeCount(data.post.likes?.length || 0);
+
+            // Related posts are a nice-to-have — never block the page on them
+            setRelatedPosts([]);
+            getRelatedPosts(data.post._id)
+                .then((related) => setRelatedPosts(related.posts))
+                .catch(() => {});
         } catch {
             toast.error("Post not found or unavailable");
             navigate("/"); // Redirect home if post doesn't exist
@@ -295,6 +303,20 @@ const PostDetailPage = () => {
                     style={{ margin: "0 auto" }}
                     dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                 />
+
+                {/* ---- RELATED POSTS ---- */}
+                {relatedPosts.length > 0 && (
+                    <section style={{ marginTop: "3rem" }} aria-labelledby="related-heading">
+                        <h2 id="related-heading" style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1rem" }}>
+                            📚 Related posts
+                        </h2>
+                        <div className="posts-grid">
+                            {relatedPosts.map((related) => (
+                                <PostCard key={related._id} post={related} />
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {/* ---- COMMENTS SECTION ---- */}
                 <hr className="divider" style={{ marginTop: "3rem" }} />

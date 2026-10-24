@@ -354,6 +354,7 @@ All API routes are prefixed with `/api`. Protected routes require the header:
 | `GET` | `/` | Public | Get all published posts. Supports `?page`, `?limit`, `?search`, `?category`, `?tag`, `?author`, `?sortBy`, `?feed=following` (logged-in only: posts from authors you follow). |
 | `GET` | `/categories` | Public | Get the list of all distinct post categories. |
 | `GET` | `/slug/:slug` | Public | Get a single published post by its URL slug. |
+| `GET` | `/:id/related` | Public | Get up to 3 published posts that share tags or categories with this one. |
 | `GET` | `/id/:id` | Protected | Get a post by its MongoDB ID (allows draft access by the author). |
 | `GET` | `/my-posts` | Protected | Get all posts (incl. drafts) for the logged-in author. |
 | `GET` | `/bookmarks` | Protected | Get all posts bookmarked by the logged-in user. |

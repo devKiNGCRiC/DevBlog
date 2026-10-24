@@ -74,3 +74,9 @@ export const getCategories = async () => {
     const response = await api.get("/posts/categories");
     return response.data;
 };
+
+// Get up to 3 posts related to this one (shared tags/categories)
+export const getRelatedPosts = async (id) => {
+    const response = await api.get(`/posts/${id}/related`);
+    return response.data;
+};

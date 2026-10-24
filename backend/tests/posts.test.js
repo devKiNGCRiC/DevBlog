@@ -186,3 +186,21 @@ describe("Comments", () => {
         expect((await Comment.findById(comment._id)).isDeleted).toBe(true);
     });
 });
+
+describe("GET /api/posts/:id/related", () => {
+    it("ranks posts by shared tags/categories and skips drafts and unrelated posts", async () => {
+        const { user: author } = await createUser();
+        const post = await createPost(author, { tags: ["react", "hooks"], categories: ["programming"] });
+        await createPost(author, { title: "Shares a category", categories: ["programming"] });
+        await createPost(author, { title: "Shares two tags", tags: ["react", "hooks"] });
+        await createPost(author, { title: "Unrelated", tags: ["cooking"] });
+        await createPost(author, { title: "Related draft", tags: ["react"], isPublished: false });
+
+        const res = await request(app).get(`/api/posts/${post._id}/related`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.posts.map((p) => p.title)).toEqual(["Shares two tags", "Shares a category"]);
+        expect(res.body.posts[0].author.username).toBe(author.username);
+        expect(res.body.posts[0].content).toBeUndefined();
+    });
+});
