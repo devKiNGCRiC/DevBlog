@@ -44,6 +44,7 @@ The goal is to understand how every piece of a modern web application connects â
 | Engagement | Like posts, bookmark posts, nested comment threads with replies, notifications for likes / comments / replies / follows |
 | Profiles | Public profile pages, follower / following system, cover & avatar images |
 | Analytics | Author stats page: totals, per-post numbers, 30-day engagement chart |
+| SEO & sharing | Open Graph / Twitter cards, share buttons, RSS feed, XML sitemap |
 | UX | Light / Dark / Sepia themes, PWA (installable app), fully responsive layout |
 | Developer UX | Skeleton loading states, error boundaries, toast notifications, confirm modals |
 
@@ -411,6 +412,15 @@ Created automatically when someone likes your post, comments on it, replies to y
 | `GET` | `/unread-count` | Protected | Number of unread notifications (polled by the navbar bell). |
 | `PUT` | `/read-all` | Protected | Mark all my notifications as read. |
 | `PUT` | `/:id/read` | Protected | Mark one of my notifications as read. |
+
+### Feeds â€” `/api/feed`
+
+Links inside both files point at the frontend (`CLIENT_URL`). Every page includes an RSS auto-discovery `<link>`, and the footer links to the feed. To get the sitemap indexed, submit `https://<your-api-host>/api/feed/sitemap.xml` in Google Search Console (or reference it from a `robots.txt` on your frontend host).
+
+| Method | Route | Access | Description |
+|---|---|---|---|
+| `GET` | `/rss.xml` | Public | RSS 2.0 feed of the 20 latest published posts. |
+| `GET` | `/sitemap.xml` | Public | XML sitemap: static pages, every published post, and the profile of every author with a published post. |
 
 ### Health Check
 

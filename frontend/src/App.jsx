@@ -12,7 +12,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 // "Toaster" shows beautiful popup notifications at the top-right corner
 import { Toaster } from "react-hot-toast";
-import { HelmetProvider } from "react-helmet-async"; // Per-page <title> and meta tags
+import { HelmetProvider, Helmet } from "react-helmet-async"; // Per-page <title> and meta tags
 import { useEffect, lazy, Suspense } from "react";
 
 // Import layout/components that appear on ALL pages
@@ -22,6 +22,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingSpinner from "./components/LoadingSpinner";
 import useAuthStore from "./store/authStore";
+import { RSS_URL } from "./utils/helpers";
 
 // Lazy-load all page components for route-level code splitting.
 // Each page is only downloaded when the user navigates to it.
@@ -64,6 +65,11 @@ function AppContent() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      {/* Lets feed readers discover the RSS feed from any page */}
+      <Helmet>
+        <link rel="alternate" type="application/rss+xml" title="DevBlog" href={RSS_URL} />
+      </Helmet>
+
       {/* Navbar appears on every page */}
       <Navbar />
 

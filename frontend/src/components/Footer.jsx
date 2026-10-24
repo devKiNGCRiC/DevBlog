@@ -3,6 +3,7 @@
 // ============================================================
 
 import { Link } from "react-router-dom";
+import { RSS_URL } from "../utils/helpers";
 import "./Footer.css";
 
 const Footer = () => {
@@ -30,6 +31,7 @@ const Footer = () => {
                             <li><Link to="/">Home</Link></li>
                             <li><Link to="/about">About Us</Link></li>
                             <li><Link to="/contact">Contact</Link></li>
+                            <li><a href={RSS_URL} target="_blank" rel="noopener noreferrer">RSS Feed</a></li>
                         </ul>
                     </div>
 

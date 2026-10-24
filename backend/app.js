@@ -22,6 +22,7 @@ const adminRoutes = require("./routes/admin.routes"); // Admin-only moderation e
 const notificationRoutes = require("./routes/notification.routes"); // Likes/comments/follows alerts
 const seriesRoutes = require("./routes/series.routes"); // Ordered post series ("Part 1 of 5")
 const reportRoutes = require("./routes/report.routes"); // Users flagging posts/comments
+const feedRoutes = require("./routes/feed.routes"); // RSS feed + sitemap.xml
 
 // Import custom error-handling middleware
 const { notFound, errorHandler } = require("./middleware/error.middleware");
@@ -146,6 +147,7 @@ app.use("/api/admin", adminRoutes); // Admin-only moderation dashboard endpoints
 app.use("/api/notifications", notificationRoutes); // The logged-in user's notifications
 app.use("/api/series", seriesRoutes); // Post series
 app.use("/api/reports", reportRoutes); // Report content to moderators
+app.use("/api/feed", feedRoutes); // RSS feed and sitemap for readers and search engines
 
 // ============================================================
 // ERROR HANDLING MIDDLEWARE
