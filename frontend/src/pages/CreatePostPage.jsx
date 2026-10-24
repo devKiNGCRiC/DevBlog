@@ -11,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Quill from "quill"; // The rich text editor library
 import "quill/dist/quill.snow.css"; // Quill's built-in styles
 import { createPost, updatePost, getPostById } from "../api/posts";
+import { getMySeries, createSeries } from "../api/series";
 import LoadingSpinner from "../components/LoadingSpinner";
 import toast from "react-hot-toast";
 
@@ -40,6 +41,17 @@ const CreatePostPage = ({ isEditing = false }) => {
     const [coverPreview, setCoverPreview] = useState(""); // URL for image preview
     const [isPublished, setIsPublished] = useState(false);
     const [scheduledAt, setScheduledAt] = useState(""); // datetime-local string, "" = publish now
+    const [mySeries, setMySeries] = useState([]); // Series this author can add the post to
+    const [seriesId, setSeriesId] = useState(""); // "" = not part of a series
+    const [newSeriesTitle, setNewSeriesTitle] = useState("");
+    const [showNewSeries, setShowNewSeries] = useState(false);
+
+    // Load my series for the "Series" dropdown
+    useEffect(() => {
+        getMySeries()
+            .then((data) => setMySeries(data.series))
+            .catch(() => {}); // The dropdown just stays empty
+    }, []);
     const [submitting, setSubmitting] = useState(false);
 
     // ============================================================
@@ -88,6 +100,7 @@ const CreatePostPage = ({ isEditing = false }) => {
             setIsPublished(post.isPublished || false);
             // Only show a schedule that is still in the future
             if (isFuture(post.scheduledAt)) setScheduledAt(toLocalInputValue(post.scheduledAt));
+            setSeriesId(post.series || "");
             // Show existing cover image as preview (not a blob — no revoke needed)
             if (post.coverImage) setCoverPreview(post.coverImage);
             // Set rich text content — Quill is guaranteed to be ready here
@@ -119,6 +132,21 @@ const CreatePostPage = ({ isEditing = false }) => {
         setCoverImage(file);
     };
 
+    const handleCreateSeries = async () => {
+        const title = newSeriesTitle.trim();
+        if (!title) return;
+        try {
+            const data = await createSeries({ title });
+            setMySeries((prev) => [data.series, ...prev]);
+            setSeriesId(data.series._id);
+            setNewSeriesTitle("");
+            setShowNewSeries(false);
+            toast.success(`Series "${title}" created`);
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to create series");
+        }
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -147,6 +175,7 @@ const CreatePostPage = ({ isEditing = false }) => {
         data.append("content", content); // HTML string from Quill
         data.append("excerpt", formData.excerpt);
         data.append("isPublished", publish || isPublished);
+        data.append("series", seriesId); // "" removes the post from any series
         // When publishing, either schedule it or clear any old schedule ("" = go live now)
         if (publish) {
             data.append("scheduledAt", scheduledAt ? new Date(scheduledAt).toISOString() : "");
@@ -326,6 +355,47 @@ const CreatePostPage = ({ isEditing = false }) => {
                     <h3 style={{ marginBottom: "1rem", fontSize: "1rem", fontWeight: 600 }}>
                         Post Settings
                     </h3>
+
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="series">Series (optional — e.g. "Learning Node.js, Part 3")</label>
+                        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                            <select
+                                id="series"
+                                value={seriesId}
+                                onChange={(e) => setSeriesId(e.target.value)}
+                                className="form-input"
+                                style={{ maxWidth: 320 }}
+                            >
+                                <option value="">— Not part of a series —</option>
+                                {mySeries.map((s) => (
+                                    <option key={s._id} value={s._id}>{s.title}</option>
+                                ))}
+                            </select>
+                            {!showNewSeries && (
+                                <button type="button" onClick={() => setShowNewSeries(true)} className="btn btn-ghost btn-sm">
+                                    ＋ New series
+                                </button>
+                            )}
+                        </div>
+                        {showNewSeries && (
+                            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                                <input
+                                    type="text"
+                                    value={newSeriesTitle}
+                                    onChange={(e) => setNewSeriesTitle(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCreateSeries(); } }}
+                                    placeholder="Series title"
+                                    aria-label="New series title"
+                                    className="form-input"
+                                    style={{ maxWidth: 320 }}
+                                    maxLength={100}
+                                    autoFocus
+                                />
+                                <button type="button" onClick={handleCreateSeries} className="btn btn-primary btn-sm">Create</button>
+                                <button type="button" onClick={() => setShowNewSeries(false)} className="btn btn-ghost btn-sm">Cancel</button>
+                            </div>
+                        )}
+                    </div>
 
                     <div className="form-group">
                         <label className="form-label" htmlFor="scheduledAt">

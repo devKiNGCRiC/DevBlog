@@ -39,7 +39,7 @@ The goal is to understand how every piece of a modern web application connects �
 | Category | Feature |
 |---|---|
 | Auth | Register, login, JWT-based sessions, email verification |
-| Posts | Create / edit / delete posts, rich text (Quill), cover images, draft/publish toggle, scheduled publishing |
+| Posts | Create / edit / delete posts, rich text (Quill), cover images, draft/publish toggle, scheduled publishing, ordered post series ("Part 2 of 5") |
 | Discovery | Full-text search, filter by category or tag, sort by latest / oldest / popular, "Following" feed |
 | Engagement | Like posts, bookmark posts, nested comment threads with replies, notifications for likes / comments / replies / follows |
 | Profiles | Public profile pages, follower / following system, cover & avatar images |
@@ -379,6 +379,17 @@ All API routes are prefixed with `/api`. Protected routes require the header:
 |---|---|---|---|
 | `GET` | `/:username` | Public | Get public profile + paginated posts for a user. |
 | `POST` | `/:id/follow` | Protected | Toggle follow / unfollow a user. |
+
+### Series — `/api/series`
+
+Posts join a series by sending `series` (a series id, or `""` to leave it) when creating/updating a post; they are numbered in the order they join. `GET /api/posts/slug/:slug` returns a `seriesNav` with the series' published parts.
+
+| Method | Route | Access | Description |
+|---|---|---|---|
+| `GET` | `/mine` | Protected | List my series. |
+| `POST` | `/` | Protected | Create a series (`title`, optional `description`). |
+| `GET` | `/:id` | Public | Get a series and its published parts, in order. |
+| `DELETE` | `/:id` | Protected (Owner/Admin) | Delete a series. Its posts are kept, just ungrouped. |
 
 ### Notifications — `/api/notifications`
 

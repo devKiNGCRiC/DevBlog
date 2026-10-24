@@ -15,6 +15,7 @@ const User = require("../models/User.model");
 const Post = require("../models/Post.model");
 const Comment = require("../models/Comment.model");
 const Notification = require("../models/Notification.model");
+const Series = require("../models/Series.model");
 const { cloudinary } = require("../config/cloudinary");
 
 // Escape special regex characters before using user input in a $regex filter —
@@ -256,6 +257,7 @@ const deleteUserAdmin = async (req, res) => {
         await Notification.deleteMany({ post: post._id });
     }
     await Post.deleteMany({ author: user._id });
+    await Series.deleteMany({ author: user._id });
 
     // Notifications sent to or caused by this user
     await Notification.deleteMany({ $or: [{ recipient: user._id }, { actor: user._id }] });

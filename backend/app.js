@@ -20,6 +20,7 @@ const commentStandaloneRoutes = require("./routes/comment-standalone.routes"); /
 const userRoutes = require("./routes/user.routes");
 const adminRoutes = require("./routes/admin.routes"); // Admin-only moderation endpoints
 const notificationRoutes = require("./routes/notification.routes"); // Likes/comments/follows alerts
+const seriesRoutes = require("./routes/series.routes"); // Ordered post series ("Part 1 of 5")
 
 // Import custom error-handling middleware
 const { notFound, errorHandler } = require("./middleware/error.middleware");
@@ -142,6 +143,7 @@ app.use("/api/comments", commentStandaloneRoutes); // Standalone comment ops (de
 app.use("/api/users", userRoutes); // User profiles and follow
 app.use("/api/admin", adminRoutes); // Admin-only moderation dashboard endpoints
 app.use("/api/notifications", notificationRoutes); // The logged-in user's notifications
+app.use("/api/series", seriesRoutes); // Post series
 
 // ============================================================
 // ERROR HANDLING MIDDLEWARE

@@ -81,6 +81,17 @@ const postSchema = new mongoose.Schema(
             },
         ],
 
+        // Optional: which series this post belongs to, and its part number in it
+        series: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Series",
+            default: null,
+        },
+        seriesOrder: {
+            type: Number, // 1 = first part. Set automatically when added to a series.
+            default: null,
+        },
+
         // --- Engagement ---
         // Array of user IDs who liked this post
         // When someone likes, their ID is added. When they unlike, it's removed.
@@ -229,6 +240,7 @@ postSchema.index({ categories: 1 }); // Fast lookups by category
 postSchema.index({ tags: 1 }); // Fast lookups by tag
 postSchema.index({ createdAt: -1 }); // Show newest posts first (-1 = descending)
 postSchema.index({ publishedAt: -1 }); // "Latest" feed sorts by when posts went live
+postSchema.index({ series: 1, seriesOrder: 1 }); // A series' parts, in order
 
 const Post = mongoose.model("Post", postSchema);
 module.exports = Post;

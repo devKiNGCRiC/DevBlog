@@ -15,6 +15,7 @@ import PostCard from "../components/PostCard";
 import ReadingProgress from "../components/ReadingProgress";
 import TableOfContents from "../components/TableOfContents";
 import ShareButtons from "../components/ShareButtons";
+import SeriesNav from "../components/SeriesNav";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ConfirmModal from "../components/ConfirmModal";
 import useAuthStore from "../store/authStore";
@@ -34,6 +35,7 @@ const PostDetailPage = () => {
     const [likeCount, setLikeCount] = useState(0);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [relatedPosts, setRelatedPosts] = useState([]);
+    const [seriesNav, setSeriesNav] = useState(null); // Parts of this post's series, if any
     const articleRef = useRef(null); // The post body — drives the reading progress bar
 
     // DOMPurify.sanitize() removes any dangerous scripts from HTML
@@ -68,6 +70,7 @@ const PostDetailPage = () => {
         try {
             const data = await getPostBySlug(slug);
             setPost(data.post);
+            setSeriesNav(data.seriesNav);
 
             // Check if the current user has liked/bookmarked this post
             if (user) {
@@ -323,6 +326,7 @@ const PostDetailPage = () => {
           "dangerouslySetInnerHTML" is React's way to render raw HTML.
           It's called "dangerously" to remind developers to sanitize first.
         */}
+                <SeriesNav seriesNav={seriesNav} currentSlug={post.slug} />
                 <TableOfContents headings={headings} />
                 <div
                     ref={articleRef}

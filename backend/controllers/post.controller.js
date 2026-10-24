@@ -13,6 +13,8 @@ const PostView = require("../models/PostView.model"); // Recent viewers (for de-
 const crypto = require("crypto"); // Built-in — hashes guest IPs so raw IPs are never stored
 const Notification = require("../models/Notification.model"); // For cascade delete
 const { notify, unnotify } = require("../utils/notify"); // Tell authors about new likes
+const Series = require("../models/Series.model"); // Ordered post series
+const mongoose = require("mongoose");
 const { cloudinary } = require("../config/cloudinary"); // For image management
 const sanitizeHtml = require("sanitize-html"); // Sanitize HTML content to prevent XSS
 
@@ -101,12 +103,35 @@ const parseScheduledAt = (raw) => {
 };
 
 // ============================================================
+// HELPER: Resolve the optional "series" field from a create/update request
+//
+// "" / "null" removes the post from its series. Otherwise it must be the
+// id of a series owned by the post's author. A post joining a series is
+// added as the next part (highest seriesOrder + 1).
+// Returns { series, seriesOrder } or { error }.
+// ============================================================
+const resolveSeries = async (raw, authorId, current = {}) => {
+    if (raw === "" || raw === "null" || raw === null) return { series: null, seriesOrder: null };
+    if (typeof raw !== "string" || !mongoose.isValidObjectId(raw)) return { error: "Invalid series" };
+
+    const series = await Series.findOne({ _id: raw, author: authorId });
+    if (!series) return { error: "Series not found" };
+
+    // Staying in the same series keeps its position
+    if (current.series && current.series.toString() === raw) {
+        return { series: series._id, seriesOrder: current.seriesOrder };
+    }
+    const last = await Post.findOne({ series: series._id }).sort({ seriesOrder: -1 }).select("seriesOrder");
+    return { series: series._id, seriesOrder: (last?.seriesOrder || 0) + 1 };
+};
+
+// ============================================================
 // @desc    Create a new blog post
 // @route   POST /api/posts
 // @access  Private (must be logged in)
 // ============================================================
 const createPost = async (req, res) => {
-    const { title, content, excerpt, categories, tags, isPublished, scheduledAt } = req.body;
+    const { title, content, excerpt, categories, tags, isPublished, scheduledAt, series } = req.body;
 
     // Validate required fields
     if (!title || !content) {
@@ -134,6 +159,15 @@ const createPost = async (req, res) => {
         }
         postData.scheduledAt = schedule.value;
         if (schedule.value) postData.isPublished = true;
+    }
+
+    if (series !== undefined) {
+        const resolved = await resolveSeries(series, req.user._id);
+        if (resolved.error) {
+            return res.status(400).json({ success: false, message: resolved.error });
+        }
+        postData.series = resolved.series;
+        postData.seriesOrder = resolved.seriesOrder;
     }
 
     // Safely parse categories and tags (guard against invalid JSON from client)
@@ -362,9 +396,22 @@ const getPostBySlug = async (req, res) => {
     // Count the view — at most once per viewer per 24h, and never the author's own visits
     await recordView(post, req);
 
+    // If the post is part of a series, include the series' live parts for "Part 2 of 5" navigation
+    let seriesNav = null;
+    if (post.series) {
+        const [series, parts] = await Promise.all([
+            Series.findById(post.series).select("title description"),
+            Post.find({ series: post.series, ...Post.liveFilter() })
+                .sort({ seriesOrder: 1 })
+                .select("title slug seriesOrder"),
+        ]);
+        if (series) seriesNav = { _id: series._id, title: series.title, description: series.description, parts };
+    }
+
     res.status(200).json({
         success: true,
         post,
+        seriesNav,
     });
 };
 
@@ -428,7 +475,7 @@ const updatePost = async (req, res) => {
     }
 
     // Extract updatable fields from request
-    const { title, content, excerpt, categories, tags, isPublished, scheduledAt } = req.body;
+    const { title, content, excerpt, categories, tags, isPublished, scheduledAt, series } = req.body;
 
     // Only update fields that were sent
     if (title) post.title = title;
@@ -445,6 +492,16 @@ const updatePost = async (req, res) => {
         }
         post.scheduledAt = schedule.value;
         if (schedule.value) post.isPublished = true;
+    }
+
+    if (series !== undefined) {
+        // The series must belong to the post's author (even when an admin is editing)
+        const resolved = await resolveSeries(series, post.author, post);
+        if (resolved.error) {
+            return res.status(400).json({ success: false, message: resolved.error });
+        }
+        post.series = resolved.series;
+        post.seriesOrder = resolved.seriesOrder;
     }
 
     // Safely parse categories and tags
