@@ -41,7 +41,7 @@ The goal is to understand how every piece of a modern web application connects â
 | Auth | Register, login, JWT-based sessions, email verification |
 | Posts | Create / edit / delete posts, rich text (Quill), cover images, draft/publish toggle |
 | Discovery | Full-text search, filter by category or tag, sort by latest / oldest / popular, "Following" feed |
-| Engagement | Like posts, bookmark posts, nested comment threads with replies |
+| Engagement | Like posts, bookmark posts, nested comment threads with replies, notifications for likes / comments / replies / follows |
 | Profiles | Public profile pages, follower / following system, cover & avatar images |
 | UX | Light / Dark / Sepia themes, PWA (installable app), fully responsive layout |
 | Developer UX | Skeleton loading states, error boundaries, toast notifications, confirm modals |
@@ -379,6 +379,17 @@ All API routes are prefixed with `/api`. Protected routes require the header:
 |---|---|---|---|
 | `GET` | `/:username` | Public | Get public profile + paginated posts for a user. |
 | `POST` | `/:id/follow` | Protected | Toggle follow / unfollow a user. |
+
+### Notifications â€” `/api/notifications`
+
+Created automatically when someone likes your post, comments on it, replies to your comment, or follows you. Unliking/unfollowing removes the notification.
+
+| Method | Route | Access | Description |
+|---|---|---|---|
+| `GET` | `/` | Protected | Get my notifications (newest first). Supports `?page`, `?limit` (max 50). Includes `unreadCount`. |
+| `GET` | `/unread-count` | Protected | Number of unread notifications (polled by the navbar bell). |
+| `PUT` | `/read-all` | Protected | Mark all my notifications as read. |
+| `PUT` | `/:id/read` | Protected | Mark one of my notifications as read. |
 
 ### Health Check
 

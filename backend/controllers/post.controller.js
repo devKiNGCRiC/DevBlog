@@ -11,6 +11,8 @@ const User = require("../models/User.model"); // User model (for bookmarks)
 const Comment = require("../models/Comment.model"); // Comment model (for cascade delete)
 const PostView = require("../models/PostView.model"); // Recent viewers (for de-duplicated view counts)
 const crypto = require("crypto"); // Built-in — hashes guest IPs so raw IPs are never stored
+const Notification = require("../models/Notification.model"); // For cascade delete
+const { notify, unnotify } = require("../utils/notify"); // Tell authors about new likes
 const { cloudinary } = require("../config/cloudinary"); // For image management
 const sanitizeHtml = require("sanitize-html"); // Sanitize HTML content to prevent XSS
 
@@ -479,6 +481,7 @@ const deletePost = async (req, res) => {
     // Cascade delete: remove all comments associated with this post
     await Comment.deleteMany({ post: post._id });
     await PostView.deleteMany({ post: post._id });
+    await Notification.deleteMany({ post: post._id });
 
     // Delete the post from database
     await Post.findByIdAndDelete(req.params.id);
@@ -495,8 +498,8 @@ const deletePost = async (req, res) => {
 // @access  Private
 // ============================================================
 const likePost = async (req, res) => {
-    // Fetch only the likes field to check current state — minimal data transfer
-    const post = await Post.findById(req.params.id).select("likes");
+    // Fetch only the likes (and author, for the notification) — minimal data transfer
+    const post = await Post.findById(req.params.id).select("likes author");
     if (!post) {
         return res.status(404).json({ success: false, message: "Post not found" });
     }
@@ -511,6 +514,10 @@ const likePost = async (req, res) => {
         : { $addToSet: { likes: req.user._id } };
 
     await Post.findByIdAndUpdate(req.params.id, update);
+
+    // Let the author know (or take it back on unlike)
+    const like = { recipient: post.author, actor: req.user._id, type: "like", post: post._id };
+    await (alreadyLiked ? unnotify(like) : notify(like));
 
     return res.status(200).json({
         success: true,

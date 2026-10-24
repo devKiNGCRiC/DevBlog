@@ -14,6 +14,7 @@
 const User = require("../models/User.model");
 const Post = require("../models/Post.model");
 const Comment = require("../models/Comment.model");
+const Notification = require("../models/Notification.model");
 const { cloudinary } = require("../config/cloudinary");
 
 // Escape special regex characters before using user input in a $regex filter —
@@ -99,6 +100,7 @@ const deletePostAdmin = async (req, res) => {
         await cloudinary.uploader.destroy(post.coverImagePublicId).catch(() => {});
     }
     await Comment.deleteMany({ post: post._id });
+    await Notification.deleteMany({ post: post._id });
     await Post.findByIdAndDelete(req.params.id);
 
     res.status(200).json({ success: true, message: "Post removed by admin" });
@@ -251,8 +253,12 @@ const deleteUserAdmin = async (req, res) => {
             await cloudinary.uploader.destroy(post.coverImagePublicId).catch(() => {});
         }
         await Comment.deleteMany({ post: post._id });
+        await Notification.deleteMany({ post: post._id });
     }
     await Post.deleteMany({ author: user._id });
+
+    // Notifications sent to or caused by this user
+    await Notification.deleteMany({ $or: [{ recipient: user._id }, { actor: user._id }] });
 
     // Remove comments this user wrote on OTHER people's posts
     await Comment.deleteMany({ author: user._id });

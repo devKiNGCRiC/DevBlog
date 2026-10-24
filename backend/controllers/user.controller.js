@@ -6,6 +6,7 @@
 
 const User = require("../models/User.model");
 const Post = require("../models/Post.model");
+const { notify, unnotify } = require("../utils/notify");
 
 // ============================================================
 // @desc    Get a user's public profile by username
@@ -94,6 +95,7 @@ const followUser = async (req, res) => {
         await User.findByIdAndUpdate(req.user._id, {
             $pull: { following: req.params.id },
         });
+        await unnotify({ recipient: targetUser._id, actor: req.user._id, type: "follow" });
         return res
             .status(200)
             .json({ success: true, message: "Unfollowed", following: false });
@@ -107,6 +109,7 @@ const followUser = async (req, res) => {
         await User.findByIdAndUpdate(req.user._id, {
             $addToSet: { following: req.params.id },
         });
+        await notify({ recipient: targetUser._id, actor: req.user._id, type: "follow" });
         return res
             .status(200)
             .json({ success: true, message: "Followed!", following: true });

@@ -7,6 +7,7 @@
 
 const Comment = require("../models/Comment.model");
 const Post = require("../models/Post.model");
+const { notify } = require("../utils/notify");
 
 // ============================================================
 // @desc    Add a comment to a post
@@ -33,6 +34,18 @@ const addComment = async (req, res) => {
         post: postId, // Which post is this comment on?
         parentComment: parentCommentId || null, // null = top-level, ID = reply
     });
+
+    // Notify the person being replied to, and the post's author.
+    // If they're the same person, one "reply" notification is enough.
+    const parent = parentCommentId
+        ? await Comment.findOne({ _id: parentCommentId, post: postId }).select("author")
+        : null;
+    if (parent) {
+        await notify({ recipient: parent.author, actor: req.user._id, type: "reply", post: post._id, comment: comment._id });
+    }
+    if (!parent || parent.author.toString() !== post.author.toString()) {
+        await notify({ recipient: post.author, actor: req.user._id, type: "comment", post: post._id, comment: comment._id });
+    }
 
     // Populate author info before sending response
     const populatedComment = await Comment.findById(comment._id).populate(

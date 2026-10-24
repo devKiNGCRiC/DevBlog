@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import { getInitials } from "../utils/helpers";
+import NotificationBell from "./NotificationBell";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -121,6 +122,7 @@ const Navbar = () => {
 
                         {isLoggedIn ? (
                             <>
+                                <NotificationBell />
                                 <Link to="/write" className="btn btn-primary btn-sm">
                                     ✏️ <span className="write-btn-text">Write</span>
                                 </Link>
@@ -182,6 +184,7 @@ const Navbar = () => {
                         <button className="theme-toggle" onClick={cycleTheme} aria-label={themeLabel}>
                             {themeIcon}
                         </button>
+                        {isLoggedIn && <NotificationBell />}
                         <button
                             className="hamburger-btn"
                             onClick={() => { setMenuOpen(!menuOpen); setSearchOpen(false); }}
@@ -269,6 +272,7 @@ const Navbar = () => {
                             <Link to={`/profile/${user?.username}`} className="mobile-nav-link">👤 My Profile</Link>
                             <Link to="/my-posts" className="mobile-nav-link">📝 My Posts</Link>
                             <Link to="/bookmarks" className="mobile-nav-link">🔖 Bookmarks</Link>
+                            <Link to="/notifications" className="mobile-nav-link">🔔 Notifications</Link>
                             <Link to="/settings" className="mobile-nav-link">⚙️ Settings</Link>
                             {user?.role === "admin" && (
                                 <Link to="/admin" className="mobile-nav-link">🛡️ Admin Dashboard</Link>

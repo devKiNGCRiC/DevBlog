@@ -40,6 +40,7 @@ const ContactPage = lazy(() => import("./pages/ContactPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 
@@ -143,6 +144,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <MyPostsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             }
           />
