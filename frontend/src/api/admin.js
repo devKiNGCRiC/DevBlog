@@ -54,3 +54,15 @@ export const deleteAdminUser = async (userId) => {
     const response = await api.delete(`/admin/users/${userId}`);
     return response.data;
 };
+
+// Reported posts/comments (status: "open" | "resolved" | "dismissed")
+export const getAdminReports = async (params) => {
+    const response = await api.get("/admin/reports", { params });
+    return response.data;
+};
+
+// Act on a report — action: "remove" (delete the content) or "dismiss" (keep it)
+export const reviewAdminReport = async (reportId, action) => {
+    const response = await api.put(`/admin/reports/${reportId}`, { action });
+    return response.data;
+};

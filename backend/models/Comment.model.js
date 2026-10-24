@@ -75,7 +75,7 @@ const commentSchema = new mongoose.Schema(
 
 // Virtual: Count of likes on a comment
 commentSchema.virtual("likeCount").get(function () {
-    return this.likes.length;
+    return this.likes?.length ?? 0; // "likes" may be left out by a .select()
 });
 
 // Index for fast lookups

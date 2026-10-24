@@ -6,8 +6,9 @@
 // "adminOnly" middleware on every /api/admin/* route on the backend —
 // the frontend guard is just a UX nicety, not the real security boundary).
 //
-// Four tabs:
-// - Overview: quick counts (users, posts, drafts, comments)
+// Five tabs:
+// - Overview: quick counts (users, posts, drafts, comments, open reports)
+// - Reports: posts/comments flagged by users — remove the content or dismiss
 // - Posts: every post in the system (published + drafts, any author)
 // - Comments: every comment in the system, flat list
 // - Users: every account, with the ability to promote/demote admins
@@ -27,6 +28,8 @@ import {
     getAdminUsers,
     updateAdminUserRole,
     deleteAdminUser,
+    getAdminReports,
+    reviewAdminReport,
 } from "../api/admin";
 import useAuthStore from "../store/authStore";
 import Pagination from "../components/Pagination";
@@ -36,6 +39,7 @@ import { timeAgo, truncateText, getInitials } from "../utils/helpers";
 
 const TABS = [
     { id: "overview", label: "📊 Overview" },
+    { id: "reports", label: "🚩 Reports" },
     { id: "posts", label: "📝 Posts" },
     { id: "comments", label: "💬 Comments" },
     { id: "users", label: "👥 Users" },
@@ -70,6 +74,7 @@ const AdminDashboardPage = () => {
                 </div>
 
                 {activeTab === "overview" && <OverviewTab />}
+                {activeTab === "reports" && <ReportsTab />}
                 {activeTab === "posts" && <PostsTab />}
                 {activeTab === "comments" && <CommentsTab />}
                 {activeTab === "users" && <UsersTab currentUserId={currentUser?._id} />}
@@ -102,6 +107,7 @@ const OverviewTab = () => {
         { label: "Published", value: stats.publishedCount, icon: "✅" },
         { label: "Drafts", value: stats.draftCount, icon: "📄" },
         { label: "Comments", value: stats.commentCount, icon: "💬" },
+        { label: "Open Reports", value: stats.openReportCount, icon: "🚩" },
     ];
 
     return (
@@ -243,6 +249,136 @@ const PostsTab = () => {
                 confirmLabel="Yes, Delete"
                 onConfirm={handleDelete}
                 onCancel={() => setDeleteTarget(null)}
+            />
+        </div>
+    );
+};
+
+// ============================================================
+// REPORTS TAB — content flagged by users
+//
+// "Remove" deletes the post (or soft-deletes the comment);
+// "Dismiss" keeps it. Either way, every open report on that same
+// post/comment is closed, so the list is refetched afterwards.
+// ============================================================
+const REPORT_STATUSES = ["open", "resolved", "dismissed"];
+
+const ReportsTab = () => {
+    const [reports, setReports] = useState([]);
+    const [pagination, setPagination] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [status, setStatus] = useState("open");
+    const [page, setPage] = useState(1);
+    const [removeTarget, setRemoveTarget] = useState(null); // report awaiting "remove" confirmation
+    const [reloadKey, setReloadKey] = useState(0); // bump to refetch
+
+    useEffect(() => {
+        setLoading(true);
+        getAdminReports({ page, limit: 20, status })
+            .then((data) => { setReports(data.reports); setPagination(data.pagination || {}); })
+            .catch(() => toast.error("Failed to load reports"))
+            .finally(() => setLoading(false));
+    }, [page, status, reloadKey]);
+
+    const review = async (report, action) => {
+        try {
+            const data = await reviewAdminReport(report._id, action);
+            toast.success(data.message);
+            setReloadKey((k) => k + 1);
+        } catch {
+            toast.error("Failed to update report");
+        } finally {
+            setRemoveTarget(null);
+        }
+    };
+
+    return (
+        <div>
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+                {REPORT_STATUSES.map((s) => (
+                    <button
+                        key={s}
+                        onClick={() => { setStatus(s); setPage(1); }}
+                        className={`btn btn-sm ${status === s ? "btn-primary" : "btn-ghost"}`}
+                        style={{ textTransform: "capitalize" }}
+                    >
+                        {s}
+                    </button>
+                ))}
+            </div>
+
+            {loading ? (
+                <LoadingSpinner />
+            ) : reports.length === 0 ? (
+                <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "2rem 0" }}>
+                    {status === "open" ? "🎉 No open reports — all clear." : `No ${status} reports.`}
+                </p>
+            ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {reports.map((report) => {
+                        const isComment = !!report.comment;
+                        const offender = isComment ? report.comment?.author : report.post?.author;
+                        return (
+                            <div key={report._id} className="card" style={{ padding: "1rem" }}>
+                                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+                                    <span className="badge">{isComment ? "💬 Comment" : "📝 Post"}</span>
+                                    <span className="badge" style={{ textTransform: "capitalize" }}>{report.reason}</span>
+                                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                                        reported by {report.reporter ? `@${report.reporter.username}` : "a deleted user"} · {timeAgo(report.createdAt)}
+                                    </span>
+                                </div>
+
+                                {isComment ? (
+                                    <p style={{ color: "var(--text-primary)", marginBottom: "0.5rem" }}>
+                                        “{truncateText(report.comment?.content || "[comment no longer exists]", 200)}”
+                                    </p>
+                                ) : null}
+                                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
+                                    {isComment ? "On " : ""}
+                                    {report.post ? (
+                                        <Link to={`/post/${report.post.slug}`} style={{ color: "var(--accent-primary)" }}>{report.post.title}</Link>
+                                    ) : "a deleted post"}
+                                    {offender && <> · by @{offender.username}</>}
+                                </div>
+                                {report.details && (
+                                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontStyle: "italic", marginBottom: "0.5rem" }}>
+                                        Reporter's note: {report.details}
+                                    </p>
+                                )}
+
+                                {report.status === "open" && (
+                                    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                                        <button onClick={() => review(report, "dismiss")} className="btn btn-ghost btn-sm">
+                                            ✓ Dismiss
+                                        </button>
+                                        <button
+                                            onClick={() => setRemoveTarget(report)}
+                                            className="btn btn-sm"
+                                            style={{ background: "rgba(239,68,68,0.08)", color: "var(--danger)" }}
+                                        >
+                                            🗑️ Remove {isComment ? "comment" : "post"}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            <Pagination currentPage={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+
+            <ConfirmModal
+                isOpen={!!removeTarget}
+                title={removeTarget?.comment ? "Remove this comment?" : "Remove this post?"}
+                message={
+                    removeTarget?.comment
+                        ? "The comment will be replaced with a 'removed by moderator' placeholder."
+                        : "The post and all its comments will be permanently deleted."
+                }
+                confirmLabel="Yes, Remove"
+                onConfirm={() => review(removeTarget, "remove")}
+                onCancel={() => setRemoveTarget(null)}
             />
         </div>
     );

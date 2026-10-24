@@ -16,6 +16,7 @@ import ReadingProgress from "../components/ReadingProgress";
 import TableOfContents from "../components/TableOfContents";
 import ShareButtons from "../components/ShareButtons";
 import SeriesNav from "../components/SeriesNav";
+import ReportButton from "../components/ReportButton";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ConfirmModal from "../components/ConfirmModal";
 import useAuthStore from "../store/authStore";
@@ -303,6 +304,16 @@ const PostDetailPage = () => {
                     >
                         {bookmarked ? "🔖" : "📑"} Save
                     </button>
+
+                    {/* Report — logged-in readers, not on your own post */}
+                    {isLoggedIn && !isAuthor && (
+                        <ReportButton
+                            targetType="post"
+                            targetId={post._id}
+                            className="btn btn-ghost btn-sm"
+                            buttonStyle={{ color: "var(--text-muted)" }}
+                        />
+                    )}
 
                     {/* Tags */}
                     <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>

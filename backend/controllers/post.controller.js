@@ -12,6 +12,7 @@ const Comment = require("../models/Comment.model"); // Comment model (for cascad
 const PostView = require("../models/PostView.model"); // Recent viewers (for de-duplicated view counts)
 const crypto = require("crypto"); // Built-in — hashes guest IPs so raw IPs are never stored
 const Notification = require("../models/Notification.model"); // For cascade delete
+const Report = require("../models/Report.model"); // For cascade delete
 const { notify, unnotify } = require("../utils/notify"); // Tell authors about new likes
 const Series = require("../models/Series.model"); // Ordered post series
 const mongoose = require("mongoose");
@@ -578,6 +579,7 @@ const deletePost = async (req, res) => {
     await Comment.deleteMany({ post: post._id });
     await PostView.deleteMany({ post: post._id });
     await Notification.deleteMany({ post: post._id });
+    await Report.deleteMany({ post: post._id });
 
     // Delete the post from database
     await Post.findByIdAndDelete(req.params.id);

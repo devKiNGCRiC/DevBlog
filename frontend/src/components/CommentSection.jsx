@@ -11,6 +11,7 @@ import { getComments, addComment, deleteComment } from "../api/comments";
 import useAuthStore from "../store/authStore";
 import { timeAgo, getInitials } from "../utils/helpers";
 import toast from "react-hot-toast"; // Beautiful popup notifications
+import ReportButton from "./ReportButton";
 
 // ============================================================
 // CommentItem — A single comment (renders recursively for replies)
@@ -156,6 +157,22 @@ const CommentItem = ({ comment, postId, onReply, onDelete, currentUser }) => {
                         >
                             🗑️ Delete
                         </button>
+                    )}
+
+                    {/* Report button — logged-in users, on other people's comments */}
+                    {currentUser && !isAuthor && (
+                        <ReportButton
+                            targetType="comment"
+                            targetId={comment._id}
+                            buttonStyle={{
+                                fontSize: "0.8rem",
+                                color: "var(--text-muted)",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                fontWeight: 500,
+                            }}
+                        />
                     )}
                 </div>
 

@@ -391,6 +391,14 @@ Posts join a series by sending `series` (a series id, or `""` to leave it) when 
 | `GET` | `/:id` | Public | Get a series and its published parts, in order. |
 | `DELETE` | `/:id` | Protected (Owner/Admin) | Delete a series. Its posts are kept, just ungrouped. |
 
+### Reports — `/api/reports` and `/api/admin/reports`
+
+| Method | Route | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/reports` | Protected | Report a post or comment: `{ targetType: "post" \| "comment", targetId, reason, details? }`. Reasons: `spam`, `harassment`, `inappropriate`, `misinformation`, `other`. One report per user per item; you can't report your own content. |
+| `GET` | `/api/admin/reports` | Admin | List reports. `?status=open` (default), `resolved` or `dismissed`. |
+| `PUT` | `/api/admin/reports/:id` | Admin | `{ action: "remove" }` deletes the post / soft-deletes the comment; `{ action: "dismiss" }` keeps it. Applies to every open report on the same item. |
+
 ### Notifications — `/api/notifications`
 
 Created automatically when someone likes your post, comments on it, replies to your comment, or follows you. Unliking/unfollowing removes the notification.

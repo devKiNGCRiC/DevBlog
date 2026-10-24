@@ -19,6 +19,8 @@ const {
     getAllUsersAdmin,
     updateUserRole,
     deleteUserAdmin,
+    getReportsAdmin,
+    reviewReport,
 } = require("../controllers/admin.controller");
 
 const { protect, adminOnly } = require("../middleware/auth.middleware");
@@ -37,5 +39,7 @@ router.delete("/comments/:id", deleteCommentAdmin); // DELETE /api/admin/comment
 router.get("/users", getAllUsersAdmin); // GET /api/admin/users
 router.put("/users/:id/role", updateUserRole); // PUT /api/admin/users/:id/role
 router.delete("/users/:id", deleteUserAdmin); // DELETE /api/admin/users/:id
+router.get("/reports", getReportsAdmin); // GET /api/admin/reports?status=open
+router.put("/reports/:id", reviewReport); // PUT /api/admin/reports/:id { action }
 
 module.exports = router;
