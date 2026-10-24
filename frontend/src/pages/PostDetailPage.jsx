@@ -20,7 +20,9 @@ import ReportButton from "../components/ReportButton";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ConfirmModal from "../components/ConfirmModal";
 import useAuthStore from "../store/authStore";
-import { formatDate, getInitials, addHeadingIds } from "../utils/helpers";
+import { formatDate, getInitials } from "../utils/helpers";
+import { preparePostContent, highlightCode } from "../utils/postContent";
+import "highlight.js/styles/github-dark.css"; // Colors for highlighted code blocks
 import toast from "react-hot-toast";
 
 const PostDetailPage = () => {
@@ -41,12 +43,18 @@ const PostDetailPage = () => {
 
     // DOMPurify.sanitize() removes any dangerous scripts from HTML
     // This protects users from XSS (Cross-Site Scripting) attacks.
-    // Then headings get ids for the table of contents. Memoised so the
-    // HTML isn't re-parsed on every like/bookmark click.
+    // Then code blocks get syntax highlighting and headings get ids for the
+    // table of contents. Memoised so the HTML isn't re-parsed on every
+    // like/bookmark click.
     const { html: contentHtml, headings } = useMemo(
-        () => (post ? addHeadingIds(DOMPurify.sanitize(post.content)) : { html: "", headings: [] }),
+        () => (post ? preparePostContent(DOMPurify.sanitize(post.content)) : { html: "", headings: [] }),
         [post]
     );
+
+    // Add syntax colors once the post body is on screen
+    useEffect(() => {
+        highlightCode(articleRef.current).catch(() => {}); // Uncolored code is still readable
+    }, [contentHtml]);
 
     useEffect(() => {
         fetchPost();

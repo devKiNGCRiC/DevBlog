@@ -62,26 +62,3 @@ export const formatCount = (num) => {
     return num.toString();
 };
 
-// Give every h1/h2/h3 in a post's HTML a unique id so it can be linked to,
-// and return the list of headings for the table of contents.
-// Example: "<h2>Getting Started</h2>" → <h2 id="h-getting-started">
-// The "h-" prefix keeps ids from clashing with built-in page/window names.
-export const addHeadingIds = (html) => {
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const headings = [];
-    const used = new Set();
-
-    doc.body.querySelectorAll("h1, h2, h3").forEach((el) => {
-        const text = el.textContent.trim();
-        if (!text) return;
-        const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-        const base = "h-" + (slug || "section");
-        let id = base;
-        for (let n = 2; used.has(id); n++) id = `${base}-${n}`; // de-duplicate repeated titles
-        used.add(id);
-        el.id = id;
-        headings.push({ id, text, level: Number(el.tagName[1]) });
-    });
-
-    return { html: doc.body.innerHTML, headings };
-};
