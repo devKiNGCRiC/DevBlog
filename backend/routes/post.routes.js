@@ -18,6 +18,7 @@ const {
     getBookmarkedPosts,
     getCategories,
     getRelatedPosts,
+    getMyStats,
 } = require("../controllers/post.controller");
 
 const { protect, optionalAuth } = require("../middleware/auth.middleware");
@@ -32,6 +33,7 @@ router.get("/id/:id", protect, getPostById); // GET /api/posts/id/:id (for edit 
 
 // Private routes
 router.get("/my-posts", protect, getMyPosts); // GET /api/posts/my-posts
+router.get("/my-stats", protect, getMyStats); // GET /api/posts/my-stats — author analytics
 router.get("/bookmarks", protect, getBookmarkedPosts); // GET /api/posts/bookmarks
 router.post(
     "/",

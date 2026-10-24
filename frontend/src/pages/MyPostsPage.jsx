@@ -88,9 +88,12 @@ const MyPostsPage = () => {
                 {/* Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
                     <h1 style={{ fontSize: "2rem", fontWeight: 800 }}>📝 My Posts</h1>
-                    <Link to="/write" className="btn btn-primary">
-                        + New Post
-                    </Link>
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <Link to="/stats" className="btn btn-ghost">📈 Stats</Link>
+                        <Link to="/write" className="btn btn-primary">
+                            + New Post
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Filter tabs */}

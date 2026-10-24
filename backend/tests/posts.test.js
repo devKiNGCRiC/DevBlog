@@ -281,3 +281,27 @@ describe("Scheduled publishing", () => {
         expect(new Date(res.body.post.publishedAt).getTime()).toBeLessThanOrEqual(Date.now());
     });
 });
+
+describe("GET /api/posts/my-stats", () => {
+    it("totals my posts' views, likes and comments, and charts recent activity", async () => {
+        const { user: author, token } = await createUser();
+        const { token: readerToken } = await createUser();
+        const post = await createPost(author, { views: 10 });
+        await createPost(author, { views: 5 });
+
+        await request(app).post(`/api/posts/${post._id}/like`).set("Authorization", bearer(readerToken));
+        await request(app)
+            .post(`/api/posts/${post._id}/comments`)
+            .set("Authorization", bearer(readerToken))
+            .send({ content: "Nice" });
+
+        const res = await request(app).get("/api/posts/my-stats").set("Authorization", bearer(token));
+
+        expect(res.status).toBe(200);
+        expect(res.body.totals).toMatchObject({ posts: 2, views: 15, likes: 1, comments: 1 });
+        expect(res.body.posts[0]).toMatchObject({ views: 10, likes: 1, comments: 1 });
+        expect(res.body.activity).toHaveLength(30);
+        const today = res.body.activity[29];
+        expect(today).toMatchObject({ likes: 1, comments: 1 });
+    });
+});

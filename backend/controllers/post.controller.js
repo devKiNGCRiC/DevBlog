@@ -753,6 +753,99 @@ const getRelatedPosts = async (req, res) => {
     res.status(200).json({ success: true, posts: related });
 };
 
+// ============================================================
+// @desc    Stats for the logged-in author: totals, per-post numbers,
+//          and daily engagement over the last 30 days
+// @route   GET /api/posts/my-stats
+// @access  Private
+//
+// Likes and views don't store WHEN they happened, so the daily chart is
+// built from notification timestamps (likes, comments/replies, follows),
+// and "views in the last 24h" from the PostView de-duplication records.
+// ============================================================
+const ACTIVITY_DAYS = 30;
+
+const getMyStats = async (req, res) => {
+    const posts = await Post.find({ author: req.user._id })
+        .select("title slug views likes bookmarks isPublished scheduledAt createdAt")
+        .lean();
+    const postIds = posts.map((p) => p._id);
+    const since = new Date(Date.now() - ACTIVITY_DAYS * 24 * 60 * 60 * 1000);
+
+    const [commentCounts, recentViewCounts, activityRows, me] = await Promise.all([
+        Comment.aggregate([
+            { $match: { post: { $in: postIds }, isDeleted: false } },
+            { $group: { _id: "$post", count: { $sum: 1 } } },
+        ]),
+        PostView.aggregate([
+            { $match: { post: { $in: postIds } } },
+            { $group: { _id: "$post", count: { $sum: 1 } } },
+        ]),
+        Notification.aggregate([
+            { $match: { recipient: req.user._id, createdAt: { $gte: since } } },
+            {
+                $group: {
+                    _id: { day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, type: "$type" },
+                    count: { $sum: 1 },
+                },
+            },
+        ]),
+        User.findById(req.user._id).select("followers").lean(),
+    ]);
+
+    // Turn [{ _id, count }] into { postId: count } for quick lookup
+    const toMap = (rows) => Object.fromEntries(rows.map((r) => [r._id.toString(), r.count]));
+    const comments = toMap(commentCounts);
+    const recentViews = toMap(recentViewCounts);
+
+    const perPost = posts
+        .map((p) => ({
+            _id: p._id,
+            title: p.title,
+            slug: p.slug,
+            isPublished: p.isPublished,
+            scheduledAt: p.scheduledAt,
+            views: p.views,
+            viewsLast24h: recentViews[p._id.toString()] || 0,
+            likes: p.likes?.length || 0,
+            bookmarks: p.bookmarks?.length || 0,
+            comments: comments[p._id.toString()] || 0,
+        }))
+        .sort((a, b) => b.views - a.views);
+
+    // One entry per day (UTC), oldest first, including days with no activity
+    const activity = [];
+    for (let i = ACTIVITY_DAYS - 1; i >= 0; i--) {
+        const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        activity.push({ date, likes: 0, comments: 0, follows: 0 });
+    }
+    const byDate = Object.fromEntries(activity.map((d) => [d.date, d]));
+    for (const row of activityRows) {
+        const day = byDate[row._id.day];
+        if (!day) continue;
+        if (row._id.type === "like") day.likes += row.count;
+        else if (row._id.type === "follow") day.follows += row.count;
+        else day.comments += row.count; // "comment" and "reply"
+    }
+
+    const sum = (key) => perPost.reduce((total, p) => total + p[key], 0);
+    res.status(200).json({
+        success: true,
+        totals: {
+            posts: posts.length,
+            published: posts.filter((p) => p.isPublished).length,
+            views: sum("views"),
+            viewsLast24h: sum("viewsLast24h"),
+            likes: sum("likes"),
+            comments: sum("comments"),
+            bookmarks: sum("bookmarks"),
+            followers: me?.followers?.length || 0,
+        },
+        posts: perPost,
+        activity,
+    });
+};
+
 // Export all post controller functions
 module.exports = {
     createPost,
@@ -767,4 +860,5 @@ module.exports = {
     getBookmarkedPosts,
     getCategories,
     getRelatedPosts,
+    getMyStats,
 };

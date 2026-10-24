@@ -80,3 +80,9 @@ export const getRelatedPosts = async (id) => {
     const response = await api.get(`/posts/${id}/related`);
     return response.data;
 };
+
+// Author analytics: totals, per-post numbers, last-30-days activity
+export const getMyStats = async () => {
+    const response = await api.get("/posts/my-stats");
+    return response.data;
+};

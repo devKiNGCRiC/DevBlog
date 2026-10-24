@@ -150,6 +150,7 @@ const Navbar = () => {
                                             <hr className="dropdown-divider" />
                                             <Link to={`/profile/${user?.username}`} className="dropdown-link" role="menuitem">👤 Profile</Link>
                                             <Link to="/my-posts" className="dropdown-link" role="menuitem">📝 My Posts</Link>
+                                            <Link to="/stats" className="dropdown-link" role="menuitem">📈 Stats</Link>
                                             <Link to="/bookmarks" className="dropdown-link" role="menuitem">🔖 Bookmarks</Link>
                                             <Link to="/settings" className="dropdown-link" role="menuitem">⚙️ Settings</Link>
                                             {user?.role === "admin" && (
@@ -271,6 +272,7 @@ const Navbar = () => {
                             <Link to="/write" className="mobile-nav-link accent">✏️ Write a Story</Link>
                             <Link to={`/profile/${user?.username}`} className="mobile-nav-link">👤 My Profile</Link>
                             <Link to="/my-posts" className="mobile-nav-link">📝 My Posts</Link>
+                            <Link to="/stats" className="mobile-nav-link">📈 Stats</Link>
                             <Link to="/bookmarks" className="mobile-nav-link">🔖 Bookmarks</Link>
                             <Link to="/notifications" className="mobile-nav-link">🔔 Notifications</Link>
                             <Link to="/settings" className="mobile-nav-link">⚙️ Settings</Link>
