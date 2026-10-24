@@ -33,13 +33,13 @@ const getUserProfile = async (req, res) => {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    const posts = await Post.find({ author: user._id, isPublished: true })
+    const posts = await Post.find({ author: user._id, ...Post.liveFilter() })
         .sort({ createdAt: -1 })
         .select("title slug excerpt coverImage views likes createdAt readTime")
         .skip(skip)
         .limit(limitNum);
 
-    const totalPosts = await Post.countDocuments({ author: user._id, isPublished: true });
+    const totalPosts = await Post.countDocuments({ author: user._id, ...Post.liveFilter() });
 
     res.status(200).json({
         success: true,

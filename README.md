@@ -39,7 +39,7 @@ The goal is to understand how every piece of a modern web application connects â
 | Category | Feature |
 |---|---|
 | Auth | Register, login, JWT-based sessions, email verification |
-| Posts | Create / edit / delete posts, rich text (Quill), cover images, draft/publish toggle |
+| Posts | Create / edit / delete posts, rich text (Quill), cover images, draft/publish toggle, scheduled publishing |
 | Discovery | Full-text search, filter by category or tag, sort by latest / oldest / popular, "Following" feed |
 | Engagement | Like posts, bookmark posts, nested comment threads with replies, notifications for likes / comments / replies / follows |
 | Profiles | Public profile pages, follower / following system, cover & avatar images |
@@ -358,7 +358,7 @@ All API routes are prefixed with `/api`. Protected routes require the header:
 | `GET` | `/id/:id` | Protected | Get a post by its MongoDB ID (allows draft access by the author). |
 | `GET` | `/my-posts` | Protected | Get all posts (incl. drafts) for the logged-in author. |
 | `GET` | `/bookmarks` | Protected | Get all posts bookmarked by the logged-in user. |
-| `POST` | `/` | Protected | Create a new post. Accepts `multipart/form-data` (cover image). |
+| `POST` | `/` | Protected | Create a new post. Accepts `multipart/form-data` (cover image). Optional `scheduledAt` (future ISO date) publishes it automatically at that time; `""` clears the schedule (same on `PUT`). |
 | `PUT` | `/:id` | Protected (Author/Admin) | Update a post. |
 | `DELETE` | `/:id` | Protected (Author/Admin) | Delete a post and all its comments. Removes image from Cloudinary. |
 | `POST` | `/:id/like` | Protected | Toggle like on a post. |

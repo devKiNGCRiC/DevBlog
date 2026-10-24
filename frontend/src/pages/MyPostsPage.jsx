@@ -14,6 +14,18 @@ import ConfirmModal from "../components/ConfirmModal";
 import { timeAgo } from "../utils/helpers";
 import toast from "react-hot-toast";
 
+// Draft, Scheduled (published but its go-live time is still ahead), or Published
+const postStatus = (post) => {
+    if (!post.isPublished) {
+        return { isLive: false, label: "Draft", background: "rgba(245, 158, 11, 0.1)", color: "var(--warning)" };
+    }
+    if (post.scheduledAt && new Date(post.scheduledAt) > new Date()) {
+        const when = new Date(post.scheduledAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+        return { isLive: false, label: `⏰ Scheduled · ${when}`, background: "var(--accent-primary-light)", color: "var(--accent-primary)" };
+    }
+    return { isLive: true, label: "Published", background: "rgba(16, 185, 129, 0.1)", color: "var(--success)" };
+};
+
 const MyPostsPage = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -123,9 +135,9 @@ const MyPostsPage = () => {
 
                                 {/* Post Info */}
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
                                         <h3 style={{ fontSize: "1rem", fontWeight: 600 }}>
-                                            <Link to={post.isPublished ? `/post/${post.slug}` : `/edit/${post._id}`} style={{ color: "var(--text-primary)" }}>
+                                            <Link to={postStatus(post).isLive ? `/post/${post.slug}` : `/edit/${post._id}`} style={{ color: "var(--text-primary)" }}>
                                                 {post.title}
                                             </Link>
                                         </h3>
@@ -134,11 +146,11 @@ const MyPostsPage = () => {
                                             style={{
                                                 fontSize: "0.7rem", fontWeight: 600, padding: "0.15rem 0.5rem",
                                                 borderRadius: "var(--radius-full)",
-                                                background: post.isPublished ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)",
-                                                color: post.isPublished ? "var(--success)" : "var(--warning)",
+                                                background: postStatus(post).background,
+                                                color: postStatus(post).color,
                                             }}
                                         >
-                                            {post.isPublished ? "Published" : "Draft"}
+                                            {postStatus(post).label}
                                         </span>
                                     </div>
                                     <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>

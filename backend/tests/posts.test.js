@@ -232,3 +232,52 @@ describe("View counting", () => {
         expect(await viewsOf(post)).toBe(2);
     });
 });
+
+describe("Scheduled publishing", () => {
+    const inOneHour = () => new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    it("keeps a scheduled post hidden from the public until its time", async () => {
+        const { token } = await createUser();
+        const { token: strangerToken } = await createUser();
+
+        const res = await request(app)
+            .post("/api/posts")
+            .set("Authorization", bearer(token))
+            .send({ title: "Coming soon", content: "<p>Soon</p>", scheduledAt: inOneHour() });
+        expect(res.status).toBe(201);
+        expect(res.body.post.isPublished).toBe(true);
+
+        const { slug, _id } = res.body.post;
+        expect((await request(app).get("/api/posts")).body.posts).toHaveLength(0);
+        expect((await request(app).get(`/api/posts/slug/${slug}`)).status).toBe(404);
+        expect((await request(app).get(`/api/posts/id/${_id}`).set("Authorization", bearer(strangerToken))).status).toBe(404);
+        expect((await request(app).get(`/api/posts/id/${_id}`).set("Authorization", bearer(token))).status).toBe(200);
+
+        // Once the scheduled time has passed, it's live — no background job needed
+        await Post.updateOne({ _id }, { scheduledAt: new Date(Date.now() - 1000) });
+        expect((await request(app).get(`/api/posts/slug/${slug}`)).status).toBe(200);
+    });
+
+    it("rejects a schedule in the past", async () => {
+        const { token } = await createUser();
+        const res = await request(app)
+            .post("/api/posts")
+            .set("Authorization", bearer(token))
+            .send({ title: "Too late", content: "<p>x</p>", scheduledAt: "2000-01-01T00:00:00Z" });
+        expect(res.status).toBe(400);
+    });
+
+    it("can be cleared to publish immediately", async () => {
+        const { user: author, token } = await createUser();
+        const post = await createPost(author, { scheduledAt: new Date(Date.now() + 3600 * 1000) });
+
+        await request(app)
+            .put(`/api/posts/${post._id}`)
+            .set("Authorization", bearer(token))
+            .send({ scheduledAt: "" });
+
+        const res = await request(app).get(`/api/posts/slug/${post.slug}`);
+        expect(res.status).toBe(200);
+        expect(new Date(res.body.post.publishedAt).getTime()).toBeLessThanOrEqual(Date.now());
+    });
+});

@@ -120,6 +120,14 @@ const postSchema = new mongoose.Schema(
             type: Date, // The date and time when the post was first published
             default: null,
         },
+
+        // Scheduled publishing: a published post with a FUTURE scheduledAt
+        // stays hidden from everyone but its author until that moment.
+        // No background job needed — public queries simply compare it to "now".
+        scheduledAt: {
+            type: Date,
+            default: null,
+        },
     },
     {
         timestamps: true, // Adds createdAt and updatedAt automatically
@@ -179,11 +187,34 @@ postSchema.pre("save", async function () {
             plainText.length > 250 ? plainText.substring(0, 250) + "..." : plainText;
     }
 
-    // Set publishedAt date when post is first published
-    if (this.isModified("isPublished") && this.isPublished && !this.publishedAt) {
-        this.publishedAt = new Date();
+    // Set publishedAt when the post first goes public:
+    // - scheduled → it goes public at scheduledAt
+    // - otherwise → now (unless it already went public in the past, e.g. unpublish + republish)
+    if (this.isModified("isPublished") || this.isModified("scheduledAt")) {
+        if (this.isPublished && this.scheduledAt) {
+            this.publishedAt = this.scheduledAt;
+        } else if (this.isPublished && (!this.publishedAt || this.publishedAt > new Date())) {
+            this.publishedAt = new Date();
+        }
     }
 });
+
+// ============================================================
+// STATIC: liveFilter
+//
+// The query conditions for "visible to the public right now":
+// published, and either not scheduled or scheduled time has passed.
+// "$not: { $gt: now }" also matches posts with no scheduledAt at all.
+// Use it in every public query:  Post.find({ ...Post.liveFilter(), ... })
+// ============================================================
+postSchema.statics.liveFilter = function () {
+    return { isPublished: true, scheduledAt: { $not: { $gt: new Date() } } };
+};
+
+// Is this particular post visible to the public right now?
+postSchema.methods.isLive = function () {
+    return this.isPublished && (!this.scheduledAt || this.scheduledAt <= new Date());
+};
 
 // ============================================================
 // INDEX: Make search faster
@@ -197,6 +228,7 @@ postSchema.index({ author: 1 }); // Fast lookups by author
 postSchema.index({ categories: 1 }); // Fast lookups by category
 postSchema.index({ tags: 1 }); // Fast lookups by tag
 postSchema.index({ createdAt: -1 }); // Show newest posts first (-1 = descending)
+postSchema.index({ publishedAt: -1 }); // "Latest" feed sorts by when posts went live
 
 const Post = mongoose.model("Post", postSchema);
 module.exports = Post;

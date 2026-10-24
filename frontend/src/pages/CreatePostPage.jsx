@@ -14,6 +14,15 @@ import { createPost, updatePost, getPostById } from "../api/posts";
 import LoadingSpinner from "../components/LoadingSpinner";
 import toast from "react-hot-toast";
 
+// <input type="datetime-local"> works in LOCAL time without a timezone,
+// e.g. "2026-10-25T09:30". Convert a Date into that format.
+const toLocalInputValue = (date) => {
+    const d = new Date(date);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+
+const isFuture = (date) => !!date && new Date(date) > new Date();
+
 const CreatePostPage = ({ isEditing = false }) => {
     const navigate = useNavigate();
     const { id } = useParams(); // For edit mode — the post ID
@@ -30,6 +39,7 @@ const CreatePostPage = ({ isEditing = false }) => {
     const [coverImage, setCoverImage] = useState(null); // File object for upload
     const [coverPreview, setCoverPreview] = useState(""); // URL for image preview
     const [isPublished, setIsPublished] = useState(false);
+    const [scheduledAt, setScheduledAt] = useState(""); // datetime-local string, "" = publish now
     const [submitting, setSubmitting] = useState(false);
 
     // ============================================================
@@ -76,6 +86,8 @@ const CreatePostPage = ({ isEditing = false }) => {
                 tags: post.tags?.join(", ") || "",
             });
             setIsPublished(post.isPublished || false);
+            // Only show a schedule that is still in the future
+            if (isFuture(post.scheduledAt)) setScheduledAt(toLocalInputValue(post.scheduledAt));
             // Show existing cover image as preview (not a blob — no revoke needed)
             if (post.coverImage) setCoverPreview(post.coverImage);
             // Set rich text content — Quill is guaranteed to be ready here
@@ -135,6 +147,10 @@ const CreatePostPage = ({ isEditing = false }) => {
         data.append("content", content); // HTML string from Quill
         data.append("excerpt", formData.excerpt);
         data.append("isPublished", publish || isPublished);
+        // When publishing, either schedule it or clear any old schedule ("" = go live now)
+        if (publish) {
+            data.append("scheduledAt", scheduledAt ? new Date(scheduledAt).toISOString() : "");
+        }
 
         // Convert comma-separated strings into arrays
         // "Tech, Programming, React" → ["Tech", "Programming", "React"]
@@ -157,15 +173,21 @@ const CreatePostPage = ({ isEditing = false }) => {
         }
 
         try {
+            const isScheduled = publish && !!scheduledAt;
             if (isEditing && id) {
                 const result = await updatePost(id, data);
-                toast.success("Post updated! ✅");
-                navigate(result.post?.slug ? `/post/${result.post.slug}` : "/my-posts");
+                toast.success(isScheduled ? "Schedule updated! ⏰" : "Post updated! ✅");
+                // A scheduled post isn't publicly viewable yet, so go to My Posts instead
+                navigate(result.post?.slug && !isFuture(result.post.scheduledAt) ? `/post/${result.post.slug}` : "/my-posts");
             } else {
                 const result = await createPost(data);
-                toast.success(publish ? "Post published! 🎉" : "Draft saved! 📝");
-                // Navigate to the new post's page
-                if (publish && result.post?.slug) {
+                toast.success(
+                    isScheduled
+                        ? `Scheduled for ${new Date(scheduledAt).toLocaleString()} ⏰`
+                        : publish ? "Post published! 🎉" : "Draft saved! 📝"
+                );
+                // Navigate to the new post's page (scheduled posts aren't public yet)
+                if (publish && !isScheduled && result.post?.slug) {
                     navigate(`/post/${result.post.slug}`);
                 } else {
                     navigate("/my-posts");
@@ -210,7 +232,7 @@ const CreatePostPage = ({ isEditing = false }) => {
                             className="btn btn-primary"
                             disabled={submitting}
                         >
-                            {submitting ? <LoadingSpinner size="sm" /> : "🚀 Publish"}
+                            {submitting ? <LoadingSpinner size="sm" /> : scheduledAt ? "⏰ Schedule" : "🚀 Publish"}
                         </button>
                     </div>
                 </div>
@@ -304,6 +326,28 @@ const CreatePostPage = ({ isEditing = false }) => {
                     <h3 style={{ marginBottom: "1rem", fontSize: "1rem", fontWeight: 600 }}>
                         Post Settings
                     </h3>
+
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="scheduledAt">
+                            Schedule for later (optional — leave empty to publish right away)
+                        </label>
+                        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                            <input
+                                type="datetime-local"
+                                id="scheduledAt"
+                                value={scheduledAt}
+                                min={toLocalInputValue(new Date())}
+                                onChange={(e) => setScheduledAt(e.target.value)}
+                                className="form-input"
+                                style={{ maxWidth: 260 }}
+                            />
+                            {scheduledAt && (
+                                <button type="button" onClick={() => setScheduledAt("")} className="btn btn-ghost btn-sm">
+                                    ✕ Clear
+                                </button>
+                            )}
+                        </div>
+                    </div>
 
                     <div className="form-group">
                         <label className="form-label">Excerpt (short description shown in feed)</label>

@@ -82,12 +82,31 @@ const recordView = async (post, req) => {
 };
 
 // ============================================================
+// HELPER: Parse the optional "scheduledAt" field from a create/update request
+//
+// Returns { value } with a Date (or null to clear the schedule),
+// or { error } if the date is invalid or not in the future.
+// "" / "null" means "publish now / no schedule".
+// ============================================================
+const parseScheduledAt = (raw) => {
+    if (raw === "" || raw === "null" || raw === null) return { value: null };
+    const date = new Date(raw);
+    if (typeof raw !== "string" || Number.isNaN(date.getTime())) {
+        return { error: "Invalid scheduled date" };
+    }
+    if (date <= new Date()) {
+        return { error: "Scheduled date must be in the future" };
+    }
+    return { value: date };
+};
+
+// ============================================================
 // @desc    Create a new blog post
 // @route   POST /api/posts
 // @access  Private (must be logged in)
 // ============================================================
 const createPost = async (req, res) => {
-    const { title, content, excerpt, categories, tags, isPublished } = req.body;
+    const { title, content, excerpt, categories, tags, isPublished, scheduledAt } = req.body;
 
     // Validate required fields
     if (!title || !content) {
@@ -106,6 +125,16 @@ const createPost = async (req, res) => {
         author: req.user._id, // The logged-in user is the author
         isPublished: isPublished === "true" || isPublished === true, // Convert string to boolean
     };
+
+    // Scheduling a post means "publish it, but not until then"
+    if (scheduledAt !== undefined) {
+        const schedule = parseScheduledAt(scheduledAt);
+        if (schedule.error) {
+            return res.status(400).json({ success: false, message: schedule.error });
+        }
+        postData.scheduledAt = schedule.value;
+        if (schedule.value) postData.isPublished = true;
+    }
 
     // Safely parse categories and tags (guard against invalid JSON from client)
     try {
@@ -178,7 +207,7 @@ const getAllPosts = async (req, res) => {
 
     // Build the "filter" object — like a WHERE clause in SQL
     const filter = {
-        isPublished: true, // Only show published posts (not drafts)
+        ...Post.liveFilter(), // Only published posts that are live (not drafts or scheduled)
     };
 
     // Add search filter if provided
@@ -212,8 +241,9 @@ const getAllPosts = async (req, res) => {
 
     // Sort options
     let sortOption = {};
-    if (sortBy === "latest") sortOption = { createdAt: -1 }; // Newest first
-    if (sortBy === "oldest") sortOption = { createdAt: 1 };  // Oldest first
+    // Sort by when posts went live, so a scheduled post appears at the top when it's published
+    if (sortBy === "latest") sortOption = { publishedAt: -1, createdAt: -1 }; // Newest first
+    if (sortBy === "oldest") sortOption = { publishedAt: 1, createdAt: 1 };   // Oldest first
     if (sortBy === "popular") sortOption = { views: -1 };    // Most viewed first
     if (search) sortOption = { score: { $meta: "textScore" } }; // Best search match first
 
@@ -290,7 +320,7 @@ const getPostById = async (req, res) => {
     }
 
     // Draft posts are only accessible by their author or an admin
-    if (!post.isPublished && !isOwnerOrAdmin(post.author._id, req.user)) {
+    if (!post.isLive() && !isOwnerOrAdmin(post.author._id, req.user)) {
         return res.status(404).json({
             success: false,
             message: "Post not found",
@@ -310,7 +340,7 @@ const getPostById = async (req, res) => {
 // ============================================================
 const getPostBySlug = async (req, res) => {
     // Find the post with this slug AND it must be published
-    const post = await Post.findOne({ slug: req.params.slug, isPublished: true })
+    const post = await Post.findOne({ slug: req.params.slug, ...Post.liveFilter() })
         .populate("author", "name username profilePicture bio followers") // Author details
         .populate({
             path: "likes", // Populate likes to check if current user liked it
@@ -358,7 +388,7 @@ const getMyPosts = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
-        .select("title slug excerpt coverImage isPublished views likes createdAt readTime");
+        .select("title slug excerpt coverImage isPublished scheduledAt views likes createdAt readTime");
 
     const total = await Post.countDocuments(filter);
 
@@ -398,7 +428,7 @@ const updatePost = async (req, res) => {
     }
 
     // Extract updatable fields from request
-    const { title, content, excerpt, categories, tags, isPublished } = req.body;
+    const { title, content, excerpt, categories, tags, isPublished, scheduledAt } = req.body;
 
     // Only update fields that were sent
     if (title) post.title = title;
@@ -407,6 +437,15 @@ const updatePost = async (req, res) => {
     if (excerpt !== undefined) post.excerpt = excerpt;
     if (isPublished !== undefined)
         post.isPublished = isPublished === "true" || isPublished === true;
+
+    if (scheduledAt !== undefined) {
+        const schedule = parseScheduledAt(scheduledAt);
+        if (schedule.error) {
+            return res.status(400).json({ success: false, message: schedule.error });
+        }
+        post.scheduledAt = schedule.value;
+        if (schedule.value) post.isPublished = true;
+    }
 
     // Safely parse categories and tags
     if (categories) {
@@ -570,7 +609,7 @@ const getBookmarkedPosts = async (req, res) => {
     // Find all posts where our user's ID is in the bookmarks array
     const posts = await Post.find({
         bookmarks: req.user._id,
-        isPublished: true,
+        ...Post.liveFilter(),
     })
         .populate("author", "name username profilePicture")
         .sort({ createdAt: -1 })
@@ -580,7 +619,7 @@ const getBookmarkedPosts = async (req, res) => {
 
     const total = await Post.countDocuments({
         bookmarks: req.user._id,
-        isPublished: true,
+        ...Post.liveFilter(),
     });
 
     res.status(200).json({
@@ -600,7 +639,7 @@ const getBookmarkedPosts = async (req, res) => {
 // @access  Public
 // ============================================================
 const getCategories = async (req, res) => {
-    const categories = await Post.distinct("categories", { isPublished: true });
+    const categories = await Post.distinct("categories", Post.liveFilter());
     // Sort alphabetically and filter out empty strings
     const sorted = categories.filter(Boolean).sort();
     res.status(200).json({ success: true, categories: sorted });
@@ -612,7 +651,7 @@ const getCategories = async (req, res) => {
 // @access  Public
 // ============================================================
 const getRelatedPosts = async (req, res) => {
-    const post = await Post.findOne({ _id: req.params.id, isPublished: true })
+    const post = await Post.findOne({ _id: req.params.id, ...Post.liveFilter() })
         .select("tags categories");
     if (!post) {
         return res.status(404).json({ success: false, message: "Post not found" });
@@ -623,7 +662,7 @@ const getRelatedPosts = async (req, res) => {
         {
             $match: {
                 _id: { $ne: post._id },
-                isPublished: true,
+                ...Post.liveFilter(),
                 $or: [{ tags: { $in: post.tags } }, { categories: { $in: post.categories } }],
             },
         },
