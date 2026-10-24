@@ -5,17 +5,19 @@
 // author info, like/bookmark buttons, and comments section.
 // ============================================================
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import DOMPurify from "dompurify"; // Security: sanitizes HTML to prevent XSS attacks
 import { getPostBySlug, likePost, bookmarkPost, deletePost, getRelatedPosts } from "../api/posts";
 import CommentSection from "../components/CommentSection";
 import PostCard from "../components/PostCard";
+import ReadingProgress from "../components/ReadingProgress";
+import TableOfContents from "../components/TableOfContents";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ConfirmModal from "../components/ConfirmModal";
 import useAuthStore from "../store/authStore";
-import { formatDate, getInitials } from "../utils/helpers";
+import { formatDate, getInitials, addHeadingIds } from "../utils/helpers";
 import toast from "react-hot-toast";
 
 const PostDetailPage = () => {
@@ -31,6 +33,16 @@ const PostDetailPage = () => {
     const [likeCount, setLikeCount] = useState(0);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [relatedPosts, setRelatedPosts] = useState([]);
+    const articleRef = useRef(null); // The post body — drives the reading progress bar
+
+    // DOMPurify.sanitize() removes any dangerous scripts from HTML
+    // This protects users from XSS (Cross-Site Scripting) attacks.
+    // Then headings get ids for the table of contents. Memoised so the
+    // HTML isn't re-parsed on every like/bookmark click.
+    const { html: contentHtml, headings } = useMemo(
+        () => (post ? addHeadingIds(DOMPurify.sanitize(post.content)) : { html: "", headings: [] }),
+        [post]
+    );
 
     useEffect(() => {
         fetchPost();
@@ -122,10 +134,6 @@ const PostDetailPage = () => {
     // Use String() to normalise ObjectId vs plain string comparison
     const isAuthor = String(user?._id) === String(post.author?._id);
 
-    // DOMPurify.sanitize() removes any dangerous scripts from HTML
-    // This protects users from XSS (Cross-Site Scripting) attacks
-    const sanitizedContent = DOMPurify.sanitize(post.content);
-
     return (
         <div className="page-wrapper">
             <Helmet>
@@ -134,6 +142,7 @@ const PostDetailPage = () => {
                 <meta property="og:title" content={post.title} />
                 {post.coverImage && <meta property="og:image" content={post.coverImage} />}
             </Helmet>
+            <ReadingProgress targetRef={articleRef} />
             <div className="container" style={{ paddingTop: "2rem", maxWidth: 780 }}>
                 {/* ---- CATEGORIES ---- */}
                 {post.categories?.length > 0 && (
@@ -298,10 +307,12 @@ const PostDetailPage = () => {
           "dangerouslySetInnerHTML" is React's way to render raw HTML.
           It's called "dangerously" to remind developers to sanitize first.
         */}
+                <TableOfContents headings={headings} />
                 <div
+                    ref={articleRef}
                     className="prose"
                     style={{ margin: "0 auto" }}
-                    dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+                    dangerouslySetInnerHTML={{ __html: contentHtml }}
                 />
 
                 {/* ---- RELATED POSTS ---- */}

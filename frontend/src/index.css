@@ -482,6 +482,8 @@ h1, h2, h3, h4, h5, h6 {
 .prose h1 { font-size: 2.5rem; margin: 2rem 0 1rem; }
 .prose h2 { font-size: 1.875rem; margin: 1.75rem 0 0.875rem; }
 .prose h3 { font-size: 1.5rem; margin: 1.5rem 0 0.75rem; }
+/* Table-of-contents jumps: stop headings hiding under the fixed navbar */
+.prose h1, .prose h2, .prose h3 { scroll-margin-top: calc(var(--navbar-height) + 1rem); }
 .prose p { margin-bottom: 1.25rem; }
 .prose ul, .prose ol { margin: 1rem 0 1rem 1.5rem; }
 .prose li { margin-bottom: 0.5rem; }
