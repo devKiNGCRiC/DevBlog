@@ -23,6 +23,7 @@ const notificationRoutes = require("./routes/notification.routes"); // Likes/com
 const seriesRoutes = require("./routes/series.routes"); // Ordered post series ("Part 1 of 5")
 const reportRoutes = require("./routes/report.routes"); // Users flagging posts/comments
 const feedRoutes = require("./routes/feed.routes"); // RSS feed + sitemap.xml
+const aiRoutes = require("./routes/ai.routes"); // Optional Claude-powered writing assistant
 
 // Import custom error-handling middleware
 const { notFound, errorHandler } = require("./middleware/error.middleware");
@@ -148,6 +149,7 @@ app.use("/api/notifications", notificationRoutes); // The logged-in user's notif
 app.use("/api/series", seriesRoutes); // Post series
 app.use("/api/reports", reportRoutes); // Report content to moderators
 app.use("/api/feed", feedRoutes); // RSS feed and sitemap for readers and search engines
+app.use("/api/ai", aiRoutes); // AI writing assistant (needs ANTHROPIC_API_KEY)
 
 // ============================================================
 // ERROR HANDLING MIDDLEWARE

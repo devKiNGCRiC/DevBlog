@@ -43,6 +43,7 @@ The goal is to understand how every piece of a modern web application connects �
 | Discovery | Full-text search, filter by category or tag, sort by latest / oldest / popular, "Following" feed |
 | Engagement | Like posts, bookmark posts, nested comment threads with replies, notifications for likes / comments / replies / follows |
 | Profiles | Public profile pages, follower / following system, cover & avatar images |
+| AI assist | Optional Claude-powered suggestions for excerpt, tags and titles in the editor |
 | Analytics | Author stats page: totals, per-post numbers, 30-day engagement chart |
 | SEO & sharing | Open Graph / Twitter cards, share buttons, RSS feed, XML sitemap |
 | UX | Light / Dark / Sepia themes, PWA (installable app), fully responsive layout |
@@ -311,6 +312,13 @@ EMAIL_PASS=your_16_char_app_password
 EMAIL_FROM="DevBlog <your_email@gmail.com>"
 ```
 
+Optional — AI writing assistant (leave unset to disable):
+
+```env
+# Get a key from https://console.anthropic.com. Each suggestion is a paid API call.
+ANTHROPIC_API_KEY=
+```
+
 ### `frontend/.env`
 
 ```env
@@ -421,6 +429,15 @@ Links inside both files point at the frontend (`CLIENT_URL`). Every page include
 |---|---|---|---|
 | `GET` | `/rss.xml` | Public | RSS 2.0 feed of the 20 latest published posts. |
 | `GET` | `/sitemap.xml` | Public | XML sitemap: static pages, every published post, and the profile of every author with a published post. |
+
+### AI writing assistant — `/api/ai`
+
+Optional, powered by Claude (`claude-opus-5-5`). Turned on by setting `ANTHROPIC_API_KEY` in `backend/.env`; without it the editor simply hides the feature. The key stays on the server.
+
+| Method | Route | Access | Description |
+|---|---|---|---|
+| `GET` | `/status` | Protected | `{ enabled }` — whether the assistant is configured. |
+| `POST` | `/suggest` | Protected (20 / user / hour) | `{ title, content }` → `{ excerpt, tags, titles }` suggestions for a draft. Nothing is saved automatically. |
 
 ### Health Check
 

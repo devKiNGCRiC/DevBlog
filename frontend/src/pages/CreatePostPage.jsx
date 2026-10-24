@@ -13,6 +13,7 @@ import "quill/dist/quill.snow.css"; // Quill's built-in styles
 import { createPost, updatePost, getPostById } from "../api/posts";
 import { getMySeries, createSeries } from "../api/series";
 import LoadingSpinner from "../components/LoadingSpinner";
+import AiSuggestions from "../components/AiSuggestions";
 import toast from "react-hot-toast";
 
 // <input type="datetime-local"> works in LOCAL time without a timezone,
@@ -355,6 +356,20 @@ const CreatePostPage = ({ isEditing = false }) => {
                     <h3 style={{ marginBottom: "1rem", fontSize: "1rem", fontWeight: 600 }}>
                         Post Settings
                     </h3>
+
+                    <AiSuggestions
+                        getDraft={() => ({ title: formData.title, content: quillRef.current?.root.innerHTML || "" })}
+                        onUseExcerpt={(excerpt) => setFormData((prev) => ({ ...prev, excerpt }))}
+                        onUseTitle={(title) => setFormData((prev) => ({ ...prev, title }))}
+                        onAddTags={(newTags) =>
+                            setFormData((prev) => {
+                                // Merge into the comma-separated tags field, skipping duplicates
+                                const current = prev.tags.split(",").map((t) => t.trim()).filter(Boolean);
+                                const merged = [...new Set([...current, ...newTags])];
+                                return { ...prev, tags: merged.join(", ") };
+                            })
+                        }
+                    />
 
                     <div className="form-group">
                         <label className="form-label" htmlFor="series">Series (optional — e.g. "Learning Node.js, Part 3")</label>
