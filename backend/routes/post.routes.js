@@ -26,7 +26,7 @@ const upload = require("../middleware/upload.middleware");
 // Public routes
 router.get("/", optionalAuth, getAllPosts); // GET /api/posts (with ?page, ?search, ?category, ?tag, ?feed=following)
 router.get("/categories", getCategories); // GET /api/posts/categories — distinct category list
-router.get("/slug/:slug", getPostBySlug); // GET /api/posts/slug/my-first-post
+router.get("/slug/:slug", optionalAuth, getPostBySlug); // GET /api/posts/slug/my-first-post
 router.get("/:id/related", getRelatedPosts); // GET /api/posts/:id/related — up to 3 similar posts
 router.get("/id/:id", protect, getPostById); // GET /api/posts/id/:id (for edit mode — requires auth)
 

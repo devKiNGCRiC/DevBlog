@@ -29,6 +29,13 @@ const { notFound, errorHandler } = require("./middleware/error.middleware");
 // ============================================================
 const app = express();
 
+// Hosting platforms (Render, Railway, Heroku...) put a proxy in front of the app.
+// Trusting one proxy hop makes req.ip the visitor's real IP instead of the
+// proxy's — needed for per-IP rate limiting and guest view counting.
+if (process.env.NODE_ENV === "production") {
+    app.set("trust proxy", 1);
+}
+
 // ============================================================
 // MIDDLEWARE SETUP
 // Middleware runs on EVERY request before reaching the routes.

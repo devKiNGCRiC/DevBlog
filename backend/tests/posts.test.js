@@ -204,3 +204,31 @@ describe("GET /api/posts/:id/related", () => {
         expect(res.body.posts[0].content).toBeUndefined();
     });
 });
+
+describe("View counting", () => {
+    const viewsOf = async (post) => (await Post.findById(post._id)).views;
+
+    it("counts a guest once per 24h, however often they refresh", async () => {
+        const { user: author } = await createUser();
+        const post = await createPost(author);
+
+        await request(app).get(`/api/posts/slug/${post.slug}`);
+        await request(app).get(`/api/posts/slug/${post.slug}`);
+        await request(app).get(`/api/posts/slug/${post.slug}`);
+
+        expect(await viewsOf(post)).toBe(1);
+    });
+
+    it("counts each logged-in reader separately and ignores the author", async () => {
+        const { user: author, token: authorToken } = await createUser();
+        const { token: readerA } = await createUser();
+        const { token: readerB } = await createUser();
+        const post = await createPost(author);
+
+        for (const token of [authorToken, readerA, readerA, readerB]) {
+            await request(app).get(`/api/posts/slug/${post.slug}`).set("Authorization", bearer(token));
+        }
+
+        expect(await viewsOf(post)).toBe(2);
+    });
+});

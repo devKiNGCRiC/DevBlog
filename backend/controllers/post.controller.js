@@ -9,6 +9,8 @@
 const Post = require("../models/Post.model"); // Post database model
 const User = require("../models/User.model"); // User model (for bookmarks)
 const Comment = require("../models/Comment.model"); // Comment model (for cascade delete)
+const PostView = require("../models/PostView.model"); // Recent viewers (for de-duplicated view counts)
+const crypto = require("crypto"); // Built-in — hashes guest IPs so raw IPs are never stored
 const { cloudinary } = require("../config/cloudinary"); // For image management
 const sanitizeHtml = require("sanitize-html"); // Sanitize HTML content to prevent XSS
 
@@ -52,6 +54,29 @@ const isOwnerOrAdmin = (resourceAuthorId, requestingUser) => {
         resourceAuthorId.toString() === requestingUser._id.toString() ||
         requestingUser.role === "admin"
     );
+};
+
+// ============================================================
+// HELPER: Count a view of a post, de-duplicated per viewer
+//
+// Inserting the PostView record is the check: the unique index makes a
+// repeat insert (same viewer, same post, within 24h) fail with error
+// code 11000, in which case we simply don't increment.
+// ============================================================
+const recordView = async (post, req) => {
+    if (req.user && post.author._id.toString() === req.user._id.toString()) return;
+
+    const viewerKey = req.user
+        ? `user:${req.user._id}`
+        : `ip:${crypto.createHash("sha256").update(`${req.ip}${process.env.JWT_SECRET}`).digest("hex")}`;
+
+    try {
+        await PostView.create({ post: post._id, viewerKey });
+    } catch (error) {
+        if (error.code === 11000) return; // Already counted recently
+        throw error;
+    }
+    await Post.findByIdAndUpdate(post._id, { $inc: { views: 1 } });
 };
 
 // ============================================================
@@ -302,9 +327,8 @@ const getPostBySlug = async (req, res) => {
         });
     }
 
-    // Increment view count (someone just viewed this post!)
-    // "findByIdAndUpdate" is faster than find + save
-    await Post.findByIdAndUpdate(post._id, { $inc: { views: 1 } });
+    // Count the view — at most once per viewer per 24h, and never the author's own visits
+    await recordView(post, req);
 
     res.status(200).json({
         success: true,
@@ -454,6 +478,7 @@ const deletePost = async (req, res) => {
 
     // Cascade delete: remove all comments associated with this post
     await Comment.deleteMany({ post: post._id });
+    await PostView.deleteMany({ post: post._id });
 
     // Delete the post from database
     await Post.findByIdAndDelete(req.params.id);
